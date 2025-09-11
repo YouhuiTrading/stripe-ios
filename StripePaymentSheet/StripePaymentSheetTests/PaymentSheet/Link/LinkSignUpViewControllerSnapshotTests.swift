@@ -12,6 +12,7 @@ import XCTest
 
 @testable@_spi(STP) import StripePaymentSheet
 
+// @iOS26
 final class LinkSignUpViewControllerSnapshotTests: STPSnapshotTestCase {
     func testEmptyView() throws {
         let sut = try makeSUT(email: nil)
@@ -41,27 +42,20 @@ final class LinkSignUpViewControllerSnapshotTests: STPSnapshotTestCase {
 
 extension LinkSignUpViewControllerSnapshotTests {
 
-    func makeSUT(email: String?) throws -> PayWithLinkViewController.SignUpViewController {
-        let (paymentIntent, elementsSession) = try PayWithLinkTestHelpers.makePaymentIntentAndElementsSession()
+    func makeSUT(email: String?) throws -> LinkSignUpViewController {
+        let (_, elementsSession) = try PayWithLinkTestHelpers.makePaymentIntentAndElementsSession()
         let session = email == nil ? LinkStubs.consumerSession(supportedPaymentDetailsTypes: [.card]) : nil
 
-        return PayWithLinkViewController.SignUpViewController(
+        return LinkSignUpViewController(
+            accountService: LinkAccountService(elementsSession: elementsSession),
             linkAccount: .init(
                 email: email ?? "",
                 session: session,
                 publishableKey: nil,
+                displayablePaymentDetails: nil,
                 useMobileEndpoints: false
             ),
-            context: .init(
-                intent: paymentIntent,
-                elementsSession: elementsSession,
-                configuration: PaymentSheet.Configuration(),
-                shouldOfferApplePay: false,
-                shouldFinishOnClose: false,
-                initiallySelectedPaymentDetailsID: nil,
-                callToAction: nil,
-                analyticsHelper: ._testValue()
-            )
+            defaultBillingDetails: nil
         )
     }
 }

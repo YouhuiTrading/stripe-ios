@@ -28,6 +28,7 @@ class PaymentSheetFormFactory {
     let addressSpecProvider: AddressSpecProvider
     let showLinkInlineCardSignup: Bool
     let linkAccount: PaymentSheetLinkAccount?
+    let linkAppearance: LinkAppearance?
     let accountService: LinkAccountServiceProtocol?
     let previousCustomerInput: IntentConfirmParams?
 
@@ -39,20 +40,25 @@ class PaymentSheetFormFactory {
     let savePaymentMethodConsentBehavior: SavePaymentMethodConsentBehavior
     let allowsSetAsDefaultPM: Bool
     let allowsLinkDefaultOptIn: Bool
+    let forceSaveFutureUseBehavior: Bool
+    let signupOptInFeatureEnabled: Bool
+    let signupOptInInitialValue: Bool
     let isFirstSavedPaymentMethod: Bool
     let analyticsHelper: PaymentSheetAnalyticsHelper?
     let paymentMethodIncentive: PaymentMethodIncentive?
+    let sellerName: String?
+    let previousLinkInlineSignupAction: LinkInlineSignupViewModel.Action?
 
     var shouldDisplaySaveCheckbox: Bool {
         // Don't show the save checkbox in Link
         guard !configuration.linkPaymentMethodsOnly else { return false }
         switch savePaymentMethodConsentBehavior {
         case .legacy:
-            return !isSettingUp && configuration.hasCustomer && paymentMethod.supportsSaveForFutureUseCheckbox()
+            return !signupOptInFeatureEnabled && !isSettingUp && configuration.hasCustomer && paymentMethod.supportsSaveForFutureUseCheckbox()
         case .paymentSheetWithCustomerSessionPaymentMethodSaveDisabled:
             return false
         case .paymentSheetWithCustomerSessionPaymentMethodSaveEnabled:
-            return configuration.hasCustomer && paymentMethod.supportsSaveForFutureUseCheckbox()
+            return !signupOptInFeatureEnabled && configuration.hasCustomer && paymentMethod.supportsSaveForFutureUseCheckbox()
         case .customerSheetWithCustomerSession:
             return false
         }
@@ -80,17 +86,18 @@ class PaymentSheetFormFactory {
         addressSpecProvider: AddressSpecProvider = .shared,
         linkAccount: PaymentSheetLinkAccount? = nil,
         accountService: LinkAccountServiceProtocol,
-        analyticsHelper: PaymentSheetAnalyticsHelper?
+        analyticsHelper: PaymentSheetAnalyticsHelper?,
+        linkAppearance: LinkAppearance? = nil,
+        previousLinkInlineSignupAction: LinkInlineSignupViewModel.Action? = nil
     ) {
 
         /// Whether or not the card form should show the link inline signup checkbox
         let showLinkInlineCardSignup: Bool = {
-            guard case .paymentElement(let configuration) = configuration else {
+            guard case .paymentElement(let configuration, _) = configuration else {
                 return false
             }
 
-            let isLinkEnabled = PaymentSheet.isLinkEnabled(elementsSession: elementsSession, configuration: configuration)
-            guard isLinkEnabled && !elementsSession.disableLinkSignup && elementsSession.supportsLinkCard else {
+            guard PaymentSheet.isLinkSignupEnabled(elementsSession: elementsSession, configuration: configuration) else {
                 return false
             }
 
@@ -129,9 +136,16 @@ class PaymentSheetFormFactory {
                   savePaymentMethodConsentBehavior: elementsSession.savePaymentMethodConsentBehavior,
                   allowsSetAsDefaultPM: elementsSession.paymentMethodSetAsDefaultForPaymentSheet,
                   allowsLinkDefaultOptIn: elementsSession.allowsLinkDefaultOptIn,
+                  forceSaveFutureUseBehavior: elementsSession.forceSaveFutureUseBehaviorAndNewMandateText,
+                  signupOptInFeatureEnabled: elementsSession.linkSignupOptInFeatureEnabled,
+                  signupOptInInitialValue: elementsSession.linkSignupOptInInitialValue,
                   isFirstSavedPaymentMethod: elementsSession.customer?.paymentMethods.isEmpty ?? true,
                   analyticsHelper: analyticsHelper,
-                  paymentMethodIncentive: elementsSession.incentive)
+                  paymentMethodIncentive: elementsSession.incentive,
+                  linkAppearance: linkAppearance,
+                  sellerName: intent.sellerDetails?.businessName,
+                  previousLinkInlineSignupAction: previousLinkInlineSignupAction
+        )
     }
 
     required init(
@@ -150,9 +164,15 @@ class PaymentSheetFormFactory {
         savePaymentMethodConsentBehavior: SavePaymentMethodConsentBehavior,
         allowsSetAsDefaultPM: Bool = false,
         allowsLinkDefaultOptIn: Bool = false,
+        forceSaveFutureUseBehavior: Bool = false,
+        signupOptInFeatureEnabled: Bool = false,
+        signupOptInInitialValue: Bool = false,
         isFirstSavedPaymentMethod: Bool = true,
         analyticsHelper: PaymentSheetAnalyticsHelper?,
-        paymentMethodIncentive: PaymentMethodIncentive?
+        paymentMethodIncentive: PaymentMethodIncentive?,
+        linkAppearance: LinkAppearance? = nil,
+        sellerName: String? = nil,
+        previousLinkInlineSignupAction: LinkInlineSignupViewModel.Action? = nil
     ) {
         self.configuration = configuration
         self.paymentMethod = paymentMethod
@@ -174,9 +194,15 @@ class PaymentSheetFormFactory {
         self.savePaymentMethodConsentBehavior = savePaymentMethodConsentBehavior
         self.allowsSetAsDefaultPM = allowsSetAsDefaultPM
         self.allowsLinkDefaultOptIn = allowsLinkDefaultOptIn
+        self.forceSaveFutureUseBehavior = forceSaveFutureUseBehavior
+        self.signupOptInFeatureEnabled = signupOptInFeatureEnabled
+        self.signupOptInInitialValue = signupOptInInitialValue
         self.isFirstSavedPaymentMethod = isFirstSavedPaymentMethod
         self.analyticsHelper = analyticsHelper
         self.paymentMethodIncentive = paymentMethodIncentive
+        self.linkAppearance = linkAppearance
+        self.sellerName = sellerName
+        self.previousLinkInlineSignupAction = previousLinkInlineSignupAction
     }
 
     func make() -> PaymentMethodElement {
@@ -192,7 +218,7 @@ class PaymentSheetFormFactory {
             // We have two ways to create the form for a payment method
             // 1. Custom, one-off forms
             if paymentMethod == .card {
-                return makeCard(cardBrandChoiceEligible: cardBrandChoiceEligible, allowsLinkDefaultOptIn: allowsLinkDefaultOptIn)
+                return makeCard(linkAppearance: linkAppearance)
             } else if paymentMethod == .USBankAccount {
                 return makeUSBankAccount(merchantName: configuration.merchantDisplayName)
             } else if paymentMethod == .UPI {
@@ -431,10 +457,12 @@ extension PaymentSheetFormFactory {
     func makeBillingAddressSection(
         collectionMode: AddressSectionElement.CollectionMode = .autoCompletable,
         countries: [String]? = nil,
-        countryAPIPath: String? = nil
+        countryAPIPath: String? = nil,
+        includeEmail: Bool = false,
+        includePhone: Bool = false
     ) -> PaymentMethodElementWrapper<AddressSectionElement> {
         let displayBillingSameAsShippingCheckbox: Bool
-        let defaultAddress: AddressSectionElement.AddressDetails
+        var defaultAddress: AddressSectionElement.AddressDetails
         if let shippingDetails = configuration.shippingDetails() {
             // If defaultBillingDetails and shippingDetails are both populated, prefer defaultBillingDetails
             displayBillingSameAsShippingCheckbox = defaultBillingDetails() == .init()
@@ -444,6 +472,14 @@ extension PaymentSheetFormFactory {
         } else {
             displayBillingSameAsShippingCheckbox = false
             defaultAddress = defaultBillingDetails().address.addressSectionDefaults
+        }
+
+        if includePhone {
+            defaultAddress.phone = defaultBillingDetails().phone
+        }
+
+        if includeEmail {
+            defaultAddress.email = defaultBillingDetails().email
         }
 
         // Determine the collection mode based on whether we have default values
@@ -463,14 +499,17 @@ extension PaymentSheetFormFactory {
         }()
 
         let section = AddressSectionElement(
-            title: String.Localized.billing_address_lowercase,
+            // TODO: Switch between "billing address" and "billing details" strings once the localizations have landed
+            title: (includePhone || includeEmail) ? String.Localized.billing_address_lowercase : String.Localized.billing_address_lowercase,
             countries: countries,
             addressSpecProvider: addressSpecProvider,
             defaults: defaultAddress,
             collectionMode: finalCollectionMode,
             additionalFields: .init(
+                phone: includePhone ? .enabled(isOptional: false) : .disabled,
+                email: includeEmail ? .enabled(isOptional: false) : .disabled,
                 billingSameAsShippingCheckbox: displayBillingSameAsShippingCheckbox
-                    ? .enabled(isOptional: false) : .disabled
+                ? .enabled(isOptional: false) : .disabled
             ),
             theme: theme
         )
@@ -501,8 +540,35 @@ extension PaymentSheetFormFactory {
             if let countryAPIPath {
                 params.paymentMethodParams.additionalAPIParameters[countryAPIPath] = section.selectedCountryCode
             }
+            if let phone = section.phone {
+                params.paymentMethodParams.nonnil_billingDetails.phone = phone.phoneNumber?.string(as: .e164)
+            }
+            if let email = section.email {
+                params.paymentMethodParams.nonnil_billingDetails.email = email.text
+            }
+            if let name = section.name {
+                params.paymentMethodParams.nonnil_billingDetails.name = name.text
+            }
             return params
         }
+    }
+
+    static func makeBankMandateText(sellerName: String?) -> NSAttributedString {
+        let links = ["terms": URL(string: "https://link.com/terms/ach-authorization")!]
+
+        let string = if let sellerName {
+            String(
+                format: String.Localized.bank_continue_mandate_text_with_seller,
+                sellerName
+            )
+        } else {
+            String.Localized.bank_continue_mandate_text
+        }
+
+        return STPStringUtils.applyLinksToString(
+            template: string,
+            links: links
+        )
     }
 
     // MARK: - PaymentMethod form definitions
@@ -648,7 +714,7 @@ extension PaymentSheetFormFactory {
 
         let phoneElement = configuration.billingDetailsCollectionConfiguration.phone == .always ? makePhone() : nil
         let addressElement = configuration.billingDetailsCollectionConfiguration.address == .full
-        ? makeBillingAddressSection(collectionMode: .autoCompletable, countries: nil)
+        ? makeBillingAddressSection(collectionMode: .autoCompletable, countries: configuration.billingDetailsCollectionConfiguration.allowedCountriesArray)
             : nil
         connectBillingDetailsFields(
             countryElement: nil,
@@ -839,6 +905,7 @@ extension PaymentSheetFormFactory {
             addressElement: addressElement,
             incentive: incentive,
             isPaymentIntent: isPaymentIntent,
+            sellerName: sellerName,
             appearance: configuration.appearance
         )
 
@@ -898,7 +965,10 @@ extension PaymentSheetFormFactory {
     func makeBillingAddressSectionIfNecessary(requiredByPaymentMethod: Bool) -> Element? {
         if configuration.billingDetailsCollectionConfiguration.address == .full
             || (configuration.billingDetailsCollectionConfiguration.address == .automatic && requiredByPaymentMethod) {
-           return makeBillingAddressSection()
+            let countries = configuration.billingDetailsCollectionConfiguration.allowedCountries.isEmpty
+                ? nil
+                : Array(configuration.billingDetailsCollectionConfiguration.allowedCountries)
+           return makeBillingAddressSection(countries: countries)
         } else {
             return nil
         }
@@ -1134,5 +1204,11 @@ extension STPPaymentMethodAddress {
         line2 = address.line2
         postalCode = address.postalCode
         state = address.state
+    }
+}
+
+extension PaymentSheet.BillingDetailsCollectionConfiguration {
+    var allowedCountriesArray: [String]? {
+        allowedCountries.isEmpty ? nil : Array(allowedCountries)
     }
 }

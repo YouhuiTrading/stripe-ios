@@ -240,16 +240,28 @@ class EmbeddedPaymentElementTest: XCTestCase {
         sut.presentingViewController = UIViewController()
         sut.view.autosizeHeight(width: 320)
         sut.embeddedPaymentMethodsView.didTap(rowButton: sut.embeddedPaymentMethodsView.getRowButton(accessibilityIdentifier: "Cash App Pay"))
+
         // ...updating w/ a broken config...
-        let brokenConfig = EmbeddedPaymentElement.IntentConfiguration(mode: .payment(amount: -1000, currency: "bad currency"), confirmHandler: { _, _, _ in
+        let brokenConfig = EmbeddedPaymentElement.IntentConfiguration(mode: .payment(amount: -1000, currency: "bad currency"), confirmHandler: { _, _, callback in
             // These tests don't confirm, so this is unused
             XCTFail("Unexpectedly called confirm handler of broken config")
+            callback(.success(""))
         })
         async let _ = sut.update(intentConfiguration: brokenConfig)
+        XCTAssertTrue(sut.latestUpdateTask == nil, "Sanity check - update should not be in progress at this point, `update` should not have been executed yet")
+
         // ...and immediately calling confirm, before the 1st update finishes...
-        async let confirmResult = sut.confirm() // Note: If this is `await`, it runs *before* the `update` call above is run.
+        while sut.latestUpdateTask == nil {
+            // Wait until update has started running before calling confirm
+            try await Task.sleep(nanoseconds: 10_000) // 1ms
+        }
+        guard case .inProgress = sut.latestUpdateContext!.status else {
+           XCTFail("This test depends on calling `confirm` while `update` is in progress.")
+            return
+        }
+        let confirmResult = await sut.confirm() // Note: If this is `await`, it runs *before* the `update` call above is run.
         // ...should make the confirm call fail b/c the update is in progress
-        switch await confirmResult {
+        switch confirmResult {
         case let .failed(error: error):
             XCTAssertEqual(error.nonGenericDescription, "An error occurred in PaymentSheet. There's a problem with your integration. confirm was called when an update task is in progress. This is not allowed, wait for updates to complete before calling confirm.")
         default:
@@ -265,7 +277,10 @@ class EmbeddedPaymentElementTest: XCTestCase {
         sut.view.autosizeHeight(width: 320)
         sut.embeddedPaymentMethodsView.didTap(rowButton: sut.embeddedPaymentMethodsView.getRowButton(accessibilityIdentifier: "Cash App Pay"))
         // ...updating w/ a broken config...
-        let brokenConfig = EmbeddedPaymentElement.IntentConfiguration(mode: .payment(amount: -1000, currency: "bad currency"), confirmHandler: { _, _, _ in })
+        let brokenConfig = EmbeddedPaymentElement.IntentConfiguration(mode: .payment(amount: -1000, currency: "bad currency"), confirmHandler: { _, _, callback in
+            XCTFail("Unexpectedly called confirm handler of broken config")
+            callback(.success(""))
+        })
         _ = await sut.update(intentConfiguration: brokenConfig)
         // ...and calling confirm, after the update finishes...
         async let confirmResult = sut.confirm()
@@ -653,16 +668,16 @@ class EmbeddedPaymentElementTest: XCTestCase {
         cardForm.getTextFieldElement("ZIP").setText("65432")
         sut.selectedFormViewController?.didTapPrimaryButton()
         // ...the change button state label (the label that appears on the selected row) should read ****1001 w/o a network (b/c no network was selected)...
-        var changeButtonState = sut.getChangeButtonState(for: .new(paymentMethodType: .stripe(.card)))
-        XCTAssertEqual(changeButtonState.sublabel, "•••• 1001")
+        sut.updateChangeButtonAndSublabelState(for: .new(paymentMethodType: .stripe(.card)))
+        XCTAssertEqual(sut.embeddedPaymentMethodsView.selectedRowChangeButtonState?.sublabel, "•••• 1001")
         // ...and setting a preferred network (ie what happens if you select a brand from the dropdown)...
         // Hack: Since the dropdown field isn't properly hooked up to the Element hierarchy, we can't access it via `cardForm.getDropdownFieldElement`
         // TODO(https://jira.corp.stripe.com/browse/MOBILESDK-3088): Make the CBC dropdown field participate in the Element hierarchy correctly!
         let cbcDropdown = (cardForm.getTextFieldElement("Card number").configuration as! TextFieldElement.PANConfiguration).cardBrandDropDown
         cbcDropdown?.selectedIndex = 1
         // ...the label should read "Cartes Bancaire ****1001"
-        changeButtonState = sut.getChangeButtonState(for: .new(paymentMethodType: .stripe(.card)))
-        XCTAssertEqual(changeButtonState.sublabel, "Cartes Bancaires •••• 1001")
+        sut.updateChangeButtonAndSublabelState(for: .new(paymentMethodType: .stripe(.card)))
+        XCTAssertEqual(sut.embeddedPaymentMethodsView.selectedRowChangeButtonState?.sublabel, "Cartes Bancaires •••• 1001")
     }
 
     func testDelegatePaymentOptionUpdate() async throws {
@@ -748,10 +763,10 @@ class EmbeddedPaymentElementTest: XCTestCase {
         }
     }
 
-    func testCreateFails_whenFlatWithChevronWithDefaultRowSelectionBehavior() async throws {
-        // Given an appearance with row.style = .flatWithChevron and a config with rowSelectionBehavior = .default
+    func testCreateFails_whenFlatWithDisclosureWithDefaultRowSelectionBehavior() async throws {
+        // Given an appearance with row.style = .flatWithDisclosure and a config with rowSelectionBehavior = .default
         var config = configuration
-        config.appearance.embeddedPaymentElement.row.style = .flatWithChevron
+        config.appearance.embeddedPaymentElement.row.style = .flatWithDisclosure
 
         // When we create an EmbeddedPaymentElement
         do {
@@ -766,39 +781,8 @@ class EmbeddedPaymentElementTest: XCTestCase {
                 XCTFail("Unexpected error type: \(error)")
                 return
             }
-            XCTAssertTrue(paymentSheetError.debugDescription.contains("flatWithChevron row style without .immediateAction row selection behavior is not supported"))
+            XCTAssertTrue(paymentSheetError.debugDescription.contains("flatWithDisclosure row style without .immediateAction row selection behavior is not supported"))
         }
-    }
-
-    func testCreateFails_whenImmediateActionAndDisplayingMandate() async throws {
-        // Given an `immediateAction` configuration...
-        var config = configuration
-        config.embeddedViewDisplaysMandateText = false
-        config.rowSelectionBehavior = .immediateAction(didSelectPaymentOption: { /* no-op */ })
-        // ...that doesn't set `embeddedViewDisplaysMandateText = false`...
-        config.embeddedViewDisplaysMandateText = true
-
-        // ...creating the EmbeddedPaymentElement should fail
-        await XCTAssertThrowsErrorAsync(
-            _ = try await EmbeddedPaymentElement.create(
-                intentConfiguration: self.paymentIntentConfig,
-                configuration: config
-            )
-        )
-    }
-
-    func testCreateSucceeds_whenFlatWithChevronWithImmediateActionRowSelectionBehavior() async throws {
-        // Given an appearance with row.style = .flatWithChevron and a config with rowSelectionBehavior = .immediateAction
-        var config = configuration
-        config.appearance.embeddedPaymentElement.row.style = .flatWithChevron
-        config.embeddedViewDisplaysMandateText = false
-        config.rowSelectionBehavior = .immediateAction(didSelectPaymentOption: {})
-
-        // When we create an EmbeddedPaymentElement
-        _ = try await EmbeddedPaymentElement.create(
-            intentConfiguration: paymentIntentConfig,
-            configuration: config
-        )
     }
 
     func testCancelingFormResetsPaymentOption() async throws {
@@ -1030,6 +1014,40 @@ extension EmbeddedPaymentElementTest: EmbeddedPaymentElementDelegate {
 
     func embeddedPaymentElementWillPresent(embeddedPaymentElement: EmbeddedPaymentElement) {
         delegateWillPresentCalled = true
+    }
+
+    func testFormDismissWithConfirmFormSheetActionCallsCanceled() async throws {
+        // Given a configuration with formSheetAction = .confirm
+        var config = configuration
+        config.embeddedViewDisplaysMandateText = false
+
+        let expectation = expectation(description: "Completion handler called with .canceled")
+        config.formSheetAction = .confirm { result in
+            XCTAssertEqual(result, .canceled, "Expected completion to be called with .canceled when form is dismissed")
+            expectation.fulfill()
+        }
+
+        // Create our EmbeddedPaymentElement
+        let sut = try await EmbeddedPaymentElement.create(
+            intentConfiguration: paymentIntentConfig,
+            configuration: config
+        )
+        sut.delegate = self
+        sut.presentingViewController = UIViewController()
+
+        // Open a form by tapping on Card
+        sut.embeddedPaymentMethodsView.didTap(
+            rowButton: sut.embeddedPaymentMethodsView.getRowButton(accessibilityIdentifier: "Card")
+        )
+
+        // Verify the form is presented
+        XCTAssertNotNil(sut.selectedFormViewController, "Form should be presented after tapping Card")
+
+        // When the user cancels the form by dismissing it
+        sut.selectedFormViewController?.didTapOrSwipeToDismiss()
+
+        // Then the completion handler should be called with .canceled
+        await fulfillment(of: [expectation], timeout: 1.0)
     }
 }
 

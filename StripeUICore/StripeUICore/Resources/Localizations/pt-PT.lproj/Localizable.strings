@@ -1,3 +1,5 @@
+"%1$@ •••• %2$@" = "%1$@ •••• %2$@";
+
 "%@ (optional)" = "%@ (opcional)";
 
 "(not accepted)" = "(rejeitado)";
@@ -104,6 +106,8 @@
 
 "Select card brand (optional)" = "Selecione a marca do cartão (opcional)";
 
+"Selection is empty." = "A seleção está vazia.";
+
 "Sort code" = "Código da agência bancária";
 
 "State" = "Estado";
@@ -132,12 +136,16 @@
 
 "Your BLIK code is invalid." = "O seu código BLIK é inválido.";
 
-"Your ZIP is incomplete." = "O seu código ZIP está incompleto.";
+"Your ZIP code is incomplete." = "O seu código postal está incompleto.";
+
+"Your ZIP code is invalid." = "O seu código postal é inválido.";
 
 "Your email is invalid." = "O seu email é inválido.";
 
 "Your payment information will not be saved." = "As suas informações de pagamento não serão guardadas.";
 
 "Your postal code is incomplete." = "O seu código postal está incompleto.";
+
+"Your postal code is invalid." = "O seu código postal é inválido.";
 
 "ZIP" = "C.P.";

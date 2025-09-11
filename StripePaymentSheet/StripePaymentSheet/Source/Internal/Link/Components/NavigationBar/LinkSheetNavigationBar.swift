@@ -97,8 +97,10 @@ class LinkSheetNavigationBar: SheetNavigationBar {
     }
 
     override func createBackButton() -> UIButton {
+        let image = Image.icon_chevron_left_standalone.makeImage(template: true)
+        let resizedImage = image.resized(to: CGSize(width: LinkUI.navigationBarButtonContentSize, height: LinkUI.navigationBarButtonContentSize))
         return Self.createButton(
-            with: Image.icon_chevron_left_standalone.makeImage(template: true),
+            with: resizedImage ?? image,
             accessibilityLabel: String.Localized.back,
             accessibilityIdentifier: "UIButton.Back",
             appearance: appearance
@@ -116,8 +118,10 @@ class LinkSheetNavigationBar: SheetNavigationBar {
         accessibilityIdentifier: String,
         appearance: PaymentSheet.Appearance
     ) -> UIButton {
+        let image = Image.icon_x_standalone.makeImage(template: true)
+        let resizedImage = image.resized(to: CGSize(width: LinkUI.navigationBarButtonContentSize, height: LinkUI.navigationBarButtonContentSize))
         return createButton(
-            with: Image.icon_x_standalone.makeImage(template: true),
+            with: resizedImage ?? image,
             accessibilityLabel: String.Localized.close,
             accessibilityIdentifier: accessibilityIdentifier,
             appearance: appearance
@@ -131,36 +135,28 @@ class LinkSheetNavigationBar: SheetNavigationBar {
         appearance: PaymentSheet.Appearance
     ) -> UIButton {
         let button = SheetNavigationButton(type: .custom)
-        let size = LinkUI.navigationBarButtonSize
-        let contentSize = LinkUI.navigationBarButtonContentSize
-
-        // Create circular background
-        button.backgroundColor = .linkSurfaceSecondary
-        button.layer.cornerRadius = size / 2
-
         button.setImage(image, for: .normal)
         button.tintColor = appearance.colors.icon
         button.contentMode = .scaleAspectFit
         button.accessibilityLabel = accessibilityLabel
         button.accessibilityIdentifier = accessibilityIdentifier
 
-        // Set fixed size for the button
         button.translatesAutoresizingMaskIntoConstraints = false
 
-        // Constrain the button size
-        NSLayoutConstraint.activate([
-            button.widthAnchor.constraint(equalToConstant: size),
-            button.heightAnchor.constraint(equalToConstant: size),
-        ])
+        if LiquidGlassDetector.isEnabled {
+            button.ios26_applyGlassConfiguration()
+        } else {
+            // Add a background color and center the icon within it
+            let size = LinkUI.navigationBarButtonSize
 
-        // Constrain the image view size
-        if let imageView = button.imageView {
-            imageView.translatesAutoresizingMaskIntoConstraints = false
+            // Create circular background
+            button.backgroundColor = .linkSurfaceSecondary
+            button.layer.cornerRadius = size / 2
+
+            // Constrain the button size
             NSLayoutConstraint.activate([
-                imageView.widthAnchor.constraint(equalToConstant: contentSize),
-                imageView.heightAnchor.constraint(equalToConstant: contentSize),
-                imageView.centerXAnchor.constraint(equalTo: button.centerXAnchor),
-                imageView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+                button.widthAnchor.constraint(equalToConstant: size),
+                button.heightAnchor.constraint(equalToConstant: size),
             ])
         }
 

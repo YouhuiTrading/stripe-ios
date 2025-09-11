@@ -25,13 +25,14 @@ enum LinkUI {
 
     // MARK: - Corner radii
 
-    static let largeCornerRadius: CGFloat = 24
+    static let largeCornerRadius: CGFloat = LiquidGlassDetector.isEnabled ? 34 : 24
 
-    static let cornerRadius: CGFloat = 12
+    static let cornerRadius: CGFloat = LiquidGlassDetector.isEnabled ? 26 : 12
 
-    static let mediumCornerRadius: CGFloat = 8
+    static let smallCornerRadius: CGFloat = LiquidGlassDetector.isEnabled ? 8 : 4
 
-    static let smallCornerRadius: CGFloat = 4
+    static let oneTimeCodeTextFieldCornerRadius: CGFloat = 12
+    static let nestedInlineSignupSectionCornerRadius: CGFloat = 16
 
     // MARK: - Border
 
@@ -39,6 +40,7 @@ enum LinkUI {
 
     static let highlightBorderConfiguration = HighlightBorderConfiguration(
         width: borderWidth,
+        cornerRadius: cornerRadius,
         color: .linkBorderSelected,
         animator: animator
     )
@@ -47,11 +49,19 @@ enum LinkUI {
 
     private static let minimumLabelHeight: CGFloat = 24
 
-    private static let minimumButtonHeight: CGFloat = 44
+    static let minimumButtonHeight: CGFloat = 44
+
+    static let minimumItemHeightForLiquidGlass: CGFloat = 64
 
     static func primaryButtonHeight(margins: NSDirectionalEdgeInsets) -> CGFloat {
         let height = LinkUI.minimumLabelHeight + margins.top + margins.bottom
         return max(height, minimumButtonHeight)
+    }
+
+    static func verticalMarginForPrimaryButton(withDesiredHeight height: CGFloat) -> CGFloat {
+        let desiredHeight = max(height, minimumButtonHeight)
+        let marginHeight = (desiredHeight - minimumLabelHeight) / 2.0
+        return max(0, marginHeight)
     }
 
     // MARK: - Margins
@@ -74,13 +84,15 @@ enum LinkUI {
 
     static let tinyContentSpacing: CGFloat = 4
 
+    static let bottomInset: CGFloat = 35
+
     // MARK: - Navigation bar
 
-    static let navigationBarHeight: CGFloat = 70
+    static let navigationBarHeight: CGFloat = LiquidGlassDetector.isEnabled ? 76 : 70
 
-    static let navigationBarButtonSize: CGFloat = 32
+    static let navigationBarButtonSize: CGFloat = LiquidGlassDetector.isEnabled ? 48 : 32
 
-    static let navigationBarButtonContentSize: CGFloat = 12
+    static let navigationBarButtonContentSize: CGFloat = LiquidGlassDetector.isEnabled ? 20 : 12
 
     // MARK: - Animations
 
@@ -229,4 +241,33 @@ extension LinkUI {
         return appearance
     }()
 
+}
+
+// MARK: - Appearance
+
+extension LinkUI {
+
+    static func inlineLogo(
+        withScale scale: CGFloat,
+        forFont font: UIFont
+    ) -> NSTextAttachment {
+        let iconImage = Image.link_logo_tintable.makeImage(template: true)
+        let iconImageAttachment = NSTextAttachment()
+
+        let contentHeight = font.capHeight * scale
+        let aspectRatio = iconImage.size.width / iconImage.size.height
+        let contentWidth = contentHeight * aspectRatio
+
+        // The asset includes letterform that's slightly inset, so we try to account for this.
+        let assetInset: CGFloat = contentHeight * 0.12
+
+        iconImageAttachment.bounds = CGRect(
+            x: 0,
+            y: -assetInset,
+            width: contentWidth,
+            height: contentHeight
+        )
+        iconImageAttachment.image = iconImage
+        return iconImageAttachment
+    }
 }

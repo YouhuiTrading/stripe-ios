@@ -98,6 +98,7 @@ public class CustomerSheet {
     public init(configuration: CustomerSheet.Configuration,
                 intentConfiguration: CustomerSheet.IntentConfiguration,
                 customerSessionClientSecretProvider: @escaping () async throws -> CustomerSessionClientSecret) {
+        AnalyticsHelper.shared.generateSessionID()
         self.integrationType = .customerSession
         self.configuration = configuration
         self.customerAdapter = nil
@@ -108,6 +109,8 @@ public class CustomerSheet {
     let customerSessionClientSecretProvider: (() async throws -> CustomerSessionClientSecret)?
     let customerSheetIntentConfiguration: CustomerSheet.IntentConfiguration?
     let customerAdapter: CustomerAdapter?
+
+    var passiveCaptchaChallenge: PassiveCaptchaChallenge?
 
     private var csCompletion: CustomerSheetCompletion?
 
@@ -165,8 +168,11 @@ public class CustomerSheet {
         customerSheetDataSource.loadPaymentMethodInfo { result in
             switch result {
             case .success((let savedPaymentMethods, let selectedPaymentMethodOption, let elementsSession)):
+                self.passiveCaptchaChallenge = PassiveCaptchaChallenge(passiveCaptcha: elementsSession.passiveCaptcha)
+                Task { await self.passiveCaptchaChallenge?.start() }
                 let merchantSupportedPaymentMethodTypes = customerSheetDataSource.merchantSupportedPaymentMethodTypes(elementsSession: elementsSession)
                 let paymentMethodRemove = customerSheetDataSource.paymentMethodRemove(elementsSession: elementsSession)
+                let paymentMethodRemoveIsPartial = customerSheetDataSource.paymentMethodRemoveIsPartial(elementsSession: elementsSession)
                 let paymentMethodUpdate = customerSheetDataSource.paymentMethodUpdate(elementsSession: elementsSession)
                 let paymentMethodSyncDefault = customerSheetDataSource.paymentMethodSyncDefault(elementsSession: elementsSession)
                 let allowsRemovalOfLastSavedPaymentMethod = CustomerSheet.allowsRemovalOfLastPaymentMethod(elementsSession: elementsSession, configuration: self.configuration)
@@ -176,6 +182,7 @@ public class CustomerSheet {
                              merchantSupportedPaymentMethodTypes: merchantSupportedPaymentMethodTypes,
                              customerSheetDataSource: customerSheetDataSource,
                              paymentMethodRemove: paymentMethodRemove,
+                             paymentMethodRemoveIsPartial: paymentMethodRemoveIsPartial,
                              paymentMethodUpdate: paymentMethodUpdate,
                              paymentMethodSyncDefault: paymentMethodSyncDefault,
                              allowsRemovalOfLastSavedPaymentMethod: allowsRemovalOfLastSavedPaymentMethod,
@@ -210,6 +217,7 @@ public class CustomerSheet {
                  merchantSupportedPaymentMethodTypes: [STPPaymentMethodType],
                  customerSheetDataSource: CustomerSheetDataSource,
                  paymentMethodRemove: Bool,
+                 paymentMethodRemoveIsPartial: Bool,
                  paymentMethodUpdate: Bool,
                  paymentMethodSyncDefault: Bool,
                  allowsRemovalOfLastSavedPaymentMethod: Bool,
@@ -228,10 +236,12 @@ public class CustomerSheet {
                                                                                 customerSheetDataSource: customerSheetDataSource,
                                                                                 isApplePayEnabled: isApplePayEnabled,
                                                                                 paymentMethodRemove: paymentMethodRemove,
+                                                                                paymentMethodRemoveIsPartial: paymentMethodRemoveIsPartial,
                                                                                 paymentMethodUpdate: paymentMethodUpdate,
                                                                                 paymentMethodSyncDefault: paymentMethodSyncDefault,
                                                                                 allowsRemovalOfLastSavedPaymentMethod: allowsRemovalOfLastSavedPaymentMethod,
                                                                                 cbcEligible: cbcEligible,
+                                                                                passiveCaptchaChallenge: self.passiveCaptchaChallenge,
                                                                                 csCompletion: self.csCompletion,
                                                                                 delegate: self)
             self.bottomSheetViewController.setViewControllers([savedPaymentSheetVC])
@@ -278,8 +288,11 @@ extension CustomerSheet: CustomerSavedPaymentMethodsViewControllerDelegate {
             completion(.failed(error: CustomerSheetError.unknown(debugDescription: "No setup intent available")))
             return
         }
-        self.confirmIntent(intent: intent, elementsSession: elementsSession, paymentOption: paymentOption) { result in
-            completion(result)
+        Task {
+            let hcaptchaToken = await self.passiveCaptchaChallenge?.fetchToken()
+            self.confirmIntent(intent: intent, elementsSession: elementsSession, paymentOption: paymentOption, hcaptchaToken: hcaptchaToken) { result in
+                completion(result)
+            }
         }
     }
 

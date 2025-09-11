@@ -18,8 +18,6 @@ private let spinnerMoveToCenterAnimationDuration = 0.35
 private let checkmarkStrokeDuration = 0.2
 
 /// Buy button or Apple Pay
-/// For internal SDK use only
-@objc(STP_Internal_ConfirmButton)
 class ConfirmButton: UIView {
     let applePayButtonType: PKPaymentButtonType
 
@@ -77,12 +75,6 @@ class ConfirmButton: UIView {
         }
     }
 
-    lazy var cornerRadius: CGFloat = appearance.primaryButton.cornerRadius ?? appearance.cornerRadius {
-        didSet {
-            applyCornerRadius()
-        }
-    }
-
     var font: UIFont? {
         get {
             return buyButton.font
@@ -98,7 +90,7 @@ class ConfirmButton: UIView {
 
     // MARK: Private Properties
     private lazy var buyButton: BuyButton = {
-        let buyButton = BuyButton(appearance: appearance)
+        let buyButton = BuyButton(showProcessingLabel: showProcessingLabel, appearance: appearance)
         buyButton.addTarget(self, action: #selector(handleTap), for: .touchUpInside)
         return buyButton
     }()
@@ -110,7 +102,9 @@ class ConfirmButton: UIView {
         return button
     }()
     private let didTap: () -> Void
+    private let didTapWhenDisabled: () -> Void
     private let appearance: PaymentSheet.Appearance
+    private let showProcessingLabel: Bool
 
     // MARK: Init
 
@@ -119,15 +113,19 @@ class ConfirmButton: UIView {
         style: Style = .stripe,
         callToAction: CallToActionType,
         applePayButtonType: PKPaymentButtonType = .plain,
+        showProcessingLabel: Bool = true,
         appearance: PaymentSheet.Appearance = PaymentSheet.Appearance.default,
-        didTap: @escaping () -> Void
+        didTap: @escaping () -> Void,
+        didTapWhenDisabled: @escaping () -> Void = {}
     ) {
         self.state = state
         self.style = style
         self.callToAction = callToAction
         self.applePayButtonType = applePayButtonType
+        self.showProcessingLabel = showProcessingLabel
         self.appearance = appearance
         self.didTap = didTap
+        self.didTapWhenDisabled = didTapWhenDisabled
         super.init(frame: .zero)
 
         directionalLayoutMargins = NSDirectionalEdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16)
@@ -209,7 +207,7 @@ class ConfirmButton: UIView {
         }
 
         // Enable/disable
-        isUserInteractionEnabled = state == .enabled
+        isUserInteractionEnabled = (state == .enabled || state == .disabled)
 
         // Update the buy button; it has its own presentation logic
         self.buyButton.update(status: state, callToAction: callToAction, animated: animated)
@@ -235,12 +233,25 @@ class ConfirmButton: UIView {
     private func handleTap() {
         if case .enabled = state {
             didTap()
+        } else if case .disabled = state {
+            // When the disabled button is tapped, trigger validation error display
+            didTapWhenDisabled()
+            // Resign first responder (as we would if the button was disabled)
+            superview?.endEditing(true)
         }
     }
 
     private func applyCornerRadius() {
-        buyButton.layer.cornerRadius = cornerRadius
-        applePayButton.cornerRadius = cornerRadius
+        if LiquidGlassDetector.isEnabled {
+            buyButton.ios26_applyCapsuleCornerConfiguration()
+            applePayButton.ios26_applyCapsuleCornerConfiguration()
+        } else if let cornerRadius = appearance.primaryButton.cornerRadius {
+            buyButton.layer.cornerRadius = cornerRadius
+            applePayButton.cornerRadius = cornerRadius
+        } else {
+            buyButton.layer.cornerRadius = appearance.cornerRadius
+            applePayButton.layer.cornerRadius = appearance.cornerRadius
+        }
     }
 
     // MARK: - BuyButton
@@ -264,6 +275,7 @@ class ConfirmButton: UIView {
 
         private var status: Status = .enabled
         private let appearance: PaymentSheet.Appearance
+        private let showProcessingLabel: Bool
 
         override var intrinsicContentSize: CGSize {
             return CGSize(
@@ -342,7 +354,11 @@ class ConfirmButton: UIView {
 
         var overriddenForegroundColor: UIColor?
 
-        init(appearance: PaymentSheet.Appearance = .default) {
+        init(
+            showProcessingLabel: Bool = true,
+            appearance: PaymentSheet.Appearance = .default
+        ) {
+            self.showProcessingLabel = showProcessingLabel
             self.appearance = appearance
             super.init(frame: .zero)
             preservesSuperviewLayoutMargins = true
@@ -444,10 +460,10 @@ class ConfirmButton: UIView {
                         return title
                     }
                 case .processing:
-                    return STPLocalizedString(
+                    return showProcessingLabel ? STPLocalizedString(
                         "Processing...",
                         "Label of a button that, when tapped, initiates payment, becomes disabled, and displays this text"
-                    )
+                    ) : nil
                 case .succeeded:
                     return nil
                 }
@@ -534,8 +550,8 @@ class ConfirmButton: UIView {
                     self.lockIcon.alpha = 0
                     self.addIcon.alpha = 0
                     self.spinner.alpha = 1
-                    self.spinnerCenteredToLockConstraint.isActive = true
-                    self.spinnerCenteredConstraint.isActive = false
+                    self.spinnerCenteredToLockConstraint.isActive = self.showProcessingLabel
+                    self.spinnerCenteredConstraint.isActive = !self.showProcessingLabel
                     self.spinner.beginProgress()
                 case .succeeded:
                     // Assumes this is only true once in ConfirmButton's lifetime

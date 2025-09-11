@@ -19,6 +19,7 @@ import Foundation
 
     case paymentMethodCreation = "stripeios.payment_method_creation"
     case paymentMethodUpdate = "stripeios.payment_method_update"
+    case confirmationTokenCreation = "stripeios.confirmation_token_creation"
     case paymentMethodIntentCreation = "stripeios.payment_intent_confirmation"
     case setupIntentConfirmationAttempt = "stripeios.setup_intent_confirmation"
 
@@ -300,4 +301,11 @@ import Foundation
     case shopPayWebviewLoadAttempt = "mc_shoppay_webview_load_attempt"
     case shopPayWebviewConfirmSuccess = "mc_shoppay_webview_confirm_success"
     case shopPayWebviewCancelled = "mc_shoppay_webview_cancelled"
+
+    // MARK: - Captcha
+    case passiveCaptchaInit = "elements.captcha.passive.init"
+    case passiveCaptchaExecute = "elements.captcha.passive.execute"
+    case passiveCaptchaSuccess = "elements.captcha.passive.success"
+    case passiveCaptchaError = "elements.captcha.passive.error"
+    case passiveCaptchaAttach = "elements.captcha.passive.attach"
 }

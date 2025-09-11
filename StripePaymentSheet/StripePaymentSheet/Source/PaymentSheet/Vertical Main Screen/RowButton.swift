@@ -12,6 +12,7 @@
 import UIKit
 
 /// A selectable button with various display styles used in vertical mode and embedded to display payment methods.
+/// - Note: This is an 'abstract base class', see its subclasses.
 class RowButton: UIView, EventHandler {
     typealias DidTapClosure = (RowButton) -> Void
 
@@ -48,7 +49,7 @@ class RowButton: UIView, EventHandler {
 
     var isFlatWithCheckmarkOrChevronStyle: Bool {
         let rowStyle = appearance.embeddedPaymentElement.row.style
-        return (rowStyle == .flatWithCheckmark || rowStyle == .flatWithChevron) && isEmbedded
+        return (rowStyle == .flatWithCheckmark || rowStyle == .flatWithDisclosure) && isEmbedded
     }
 
     var hasSubtext: Bool {
@@ -356,8 +357,8 @@ extension RowButton {
                   isEmbedded: isEmbedded,
                   didTap: didTap
               )
-          case .flatWithChevron:
-              return RowButtonFlatWithChevron(
+          case .flatWithDisclosure:
+              return RowButtonFlatWithDisclosure(
                   appearance: appearance,
                   type: type,
                   imageView: imageView,
@@ -383,7 +384,11 @@ extension RowButton {
 
     static func makeRowButtonLabel(text: String, appearance: PaymentSheet.Appearance, isEmbedded: Bool) -> UILabel {
         let label = UILabel()
-        label.font = appearance.scaledFont(for: appearance.font.base.medium, style: .subheadline, maximumPointSize: 25)
+        if isEmbedded, let customFont = appearance.embeddedPaymentElement.row.titleFont {
+            label.font = customFont
+        } else {
+            label.font = appearance.scaledFont(for: appearance.font.base.medium, style: .subheadline, maximumPointSize: 25)
+        }
         label.adjustsFontSizeToFitWidth = true
         label.adjustsFontForContentSizeCategory = true
         label.text = text
@@ -394,7 +399,7 @@ extension RowButton {
             }
 
             switch appearance.embeddedPaymentElement.row.style {
-            case .flatWithRadio, .flatWithCheckmark, .flatWithChevron:
+            case .flatWithRadio, .flatWithCheckmark, .flatWithDisclosure:
                 return appearance.colors.text
             case .floatingButton:
                 return appearance.colors.componentText
@@ -407,7 +412,11 @@ extension RowButton {
 
     static func makeRowButtonSublabel(text: String?, appearance: PaymentSheet.Appearance, isEmbedded: Bool) -> UILabel {
         let sublabel = UILabel()
-        sublabel.font = appearance.scaledFont(for: appearance.font.base.regular, style: .caption1, maximumPointSize: 20)
+        if isEmbedded, let customFont = appearance.embeddedPaymentElement.row.subtitleFont {
+            sublabel.font = customFont
+        } else {
+            sublabel.font = appearance.scaledFont(for: appearance.font.base.regular, style: .caption1, maximumPointSize: 20)
+        }
         sublabel.numberOfLines = 1
         sublabel.adjustsFontSizeToFitWidth = true
         sublabel.adjustsFontForContentSizeCategory = true
@@ -419,7 +428,7 @@ extension RowButton {
             }
 
             switch appearance.embeddedPaymentElement.row.style {
-            case .flatWithRadio, .flatWithCheckmark, .flatWithChevron:
+            case .flatWithRadio, .flatWithCheckmark, .flatWithDisclosure:
                 return appearance.colors.textSecondary
             case .floatingButton:
                 return appearance.colors.componentPlaceholderText
@@ -512,9 +521,7 @@ extension RowButton {
     }
 
     static func makeForApplePay(appearance: PaymentSheet.Appearance, isEmbedded: Bool = false, didTap: @escaping DidTapClosure) -> RowButton {
-        // Apple Pay logo has built-in padding and ends up looking too small; compensate with insets
-        let applePayLogo = Image.apple_pay_mark.makeImage().withAlignmentRectInsets(UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8))
-        let imageView = UIImageView(image: applePayLogo)
+        let imageView = UIImageView(image: Image.apple_pay_mark.makeImage())
         imageView.contentMode = .scaleAspectFit
         return RowButton.create(appearance: appearance, type: .applePay, imageView: imageView, text: String.Localized.apple_pay, isEmbedded: isEmbedded, didTap: didTap)
     }

@@ -21,9 +21,18 @@ final class LinkVerificationController {
     init(
         mode: LinkVerificationView.Mode = .modal,
         linkAccount: PaymentSheetLinkAccount,
-        configuration: PaymentElementConfiguration
+        configuration: PaymentElementConfiguration,
+        appearance: LinkAppearance? = nil,
+        allowLogoutInDialog: Bool = false,
+        consentViewModel: LinkConsentViewModel? = nil
     ) {
-        self.verificationViewController = LinkVerificationViewController(mode: mode, linkAccount: linkAccount)
+        self.verificationViewController = LinkVerificationViewController(
+            mode: mode,
+            linkAccount: linkAccount,
+            appearance: appearance,
+            allowLogoutInDialog: allowLogoutInDialog,
+            consentViewModel: consentViewModel
+        )
         verificationViewController.delegate = self
         configuration.style.configure(verificationViewController)
     }

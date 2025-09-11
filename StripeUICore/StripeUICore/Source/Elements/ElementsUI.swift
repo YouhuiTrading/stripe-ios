@@ -19,9 +19,9 @@ import UIKit
     public static let textFieldFont: UIFont = UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: 14))
     public static let sectionTitleFont: UIFont = UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: 13, weight: .semibold))
     /// The spacing between elements of a SectionElement
-    public static let sectionSpacing: CGFloat = 4
+    public static let sectionElementInternalSpacing: CGFloat = 8
     /// The spacing between elements of a FormElement
-    public static let formSpacing: CGFloat = 12
+    public static let formSpacing: CGFloat = 16
     public static let defaultCornerRadius: CGFloat = 6
     public static let backgroundColor: UIColor = {
         // systemBackground has a 'base' and 'elevated' state; we don't want this behavior.
@@ -86,6 +86,10 @@ import UIKit
     public var fonts = Font()
     public var colors = Color()
 
+    /// The thickness of divider lines between elements in a section uses `borderWidth` for consistency, with a minimum thickness of 0.5.
+    public var separatorWidth: CGFloat {
+        borderWidth > 0 ? borderWidth : 0.5
+    }
     public var borderWidth = ElementsUI.fieldBorderWidth
     public var cornerRadius = ElementsUI.defaultCornerRadius
     public var shadow: Shadow? = Shadow()

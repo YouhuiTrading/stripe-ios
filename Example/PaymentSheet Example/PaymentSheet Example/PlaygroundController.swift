@@ -224,6 +224,7 @@ class PlaygroundController: ObservableObject {
         configuration.billingDetailsCollectionConfiguration.email = .init(rawValue: settings.collectEmail.rawValue)!
         configuration.billingDetailsCollectionConfiguration.address = .init(rawValue: settings.collectAddress.rawValue)!
         configuration.billingDetailsCollectionConfiguration.attachDefaultsToPaymentMethod = settings.attachDefaults == .on
+        configuration.billingDetailsCollectionConfiguration.allowedCountries = settings.allowedCountries.countries
         configuration.preferredNetworks = settings.preferredNetworksEnabled == .on ? [.visa, .cartesBancaires] : nil
         configuration.allowsRemovalOfLastSavedPaymentMethod = settings.allowsRemovalOfLastSavedPaymentMethod == .on
 
@@ -253,6 +254,9 @@ class PlaygroundController: ObservableObject {
         case .alwaysDark:
             configuration.style = .alwaysDark
         }
+
+        configuration.opensCardScannerAutomatically = settings.opensCardScannerAutomatically == .on
+        configuration.termsDisplay = cardTermsDisplay
         return configuration
     }
 
@@ -336,6 +340,7 @@ class PlaygroundController: ObservableObject {
         configuration.billingDetailsCollectionConfiguration.email = .init(rawValue: settings.collectEmail.rawValue)!
         configuration.billingDetailsCollectionConfiguration.address = .init(rawValue: settings.collectAddress.rawValue)!
         configuration.billingDetailsCollectionConfiguration.attachDefaultsToPaymentMethod = settings.attachDefaults == .on
+        configuration.billingDetailsCollectionConfiguration.allowedCountries = settings.allowedCountries.countries
         configuration.preferredNetworks = settings.preferredNetworksEnabled == .on ? [.visa, .cartesBancaires] : nil
         configuration.allowsRemovalOfLastSavedPaymentMethod = settings.allowsRemovalOfLastSavedPaymentMethod == .on
 
@@ -347,6 +352,9 @@ class PlaygroundController: ObservableObject {
         case .allowVisa:
             configuration.cardBrandAcceptance = .allowed(brands: [.visa])
         }
+
+        configuration.opensCardScannerAutomatically = settings.opensCardScannerAutomatically == .on
+        configuration.termsDisplay = cardTermsDisplay
 
         return configuration
     }
@@ -366,9 +374,19 @@ class PlaygroundController: ObservableObject {
                 phone: "5555555555"
             )
             configuration.allowedCountries = ["US", "CA", "MX", "GB"]
+            configuration.billingAddress = .init(
+                address: .init(
+                    city: "New York",
+                    country: "US",
+                    line1: "123 Main Street",
+                    postalCode: "10001",
+                    state: "New York"
+                ),
+                name: "John Smith",
+                phone: "5551234567"
+            )
         }
         configuration.additionalFields.checkboxLabel = "Save this address for future orders"
-        configuration.showUseBillingAddressCheckbox = true
         return configuration
     }
 
@@ -447,6 +465,17 @@ class PlaygroundController: ObservableObject {
         }
     }
 
+    var cardTermsDisplay: [STPPaymentMethodType: PaymentSheet.TermsDisplay] {
+        switch settings.termsDisplay {
+        case .unset:
+            return [:]
+        case .automatic:
+            return [.card: .automatic]
+        case .never:
+            return [.card: .never]
+        }
+    }
+
     func handleCustomPaymentMethod(
         _ customPaymentMethodType: PaymentSheet.CustomPaymentMethodConfiguration.CustomPaymentMethod,
         _ billingDetails: STPPaymentMethodBillingDetails
@@ -518,7 +547,13 @@ class PlaygroundController: ObservableObject {
 
     private var subscribers: Set<AnyCancellable> = []
 
-    init(settings: PaymentSheetTestPlaygroundSettings) {
+    convenience init() {
+        let settings = Self.settingsFromDefaults() ?? .defaultValues()
+        let appearance = Self.appearanceFromDefaults() ?? .default
+        self.init(settings: settings, appearance: appearance)
+    }
+
+    init(settings: PaymentSheetTestPlaygroundSettings, appearance: PaymentSheet.Appearance) {
         // Enable experimental payment methods.
         //        PaymentSheet.supportedPaymentMethods += [.link]
 
@@ -530,22 +565,23 @@ class PlaygroundController: ObservableObject {
             UserDefaults.standard.set(true, forKey: "FINANCIAL_CONNECTIONS_EXAMPLE_APP_ENABLE_NATIVE")
         }
         self.settings = settings
+        self.appearance = appearance
         self.currentlyRenderedSettings = .defaultValues()
 
-        $settings.removeDuplicates().sink { newValue in
+        $settings.removeDuplicates().sink { [weak self] newValue in
             if newValue.autoreload == .on {
                 // This closure is called *before* `settings` is updated! Wait until the next run loop before calling `load`
                 DispatchQueue.main.async {
-                    self.load()
+                    self?.load()
                 }
             }
             if newValue.shakeAmbiguousViews == .on {
-                self.ambiguousViewTimer?.invalidate()
-                self.ambiguousViewTimer = .scheduledTimer(withTimeInterval: 5.0, repeats: true, block: { _ in
-                    self.checkForAmbiguousViews()
+                self?.ambiguousViewTimer?.invalidate()
+                self?.ambiguousViewTimer = .scheduledTimer(withTimeInterval: 5.0, repeats: true, block: { _ in
+                    self?.checkForAmbiguousViews()
                 })
             } else {
-                self.ambiguousViewTimer?.invalidate()
+                self?.ambiguousViewTimer?.invalidate()
             }
 
             // Hack to enable incentives in Instant Debits
@@ -1017,7 +1053,11 @@ extension PlaygroundController: STPAnalyticsClientDelegate {
 
 extension PlaygroundController {
     func serializeSettingsToNSUserDefaults() {
-        let settingsData = try! JSONEncoder().encode(settings)
+        // Never save changes for iOS26 since we have to set allowNewDesign based on a flag that isn't ready during boot time.
+        var settingsWithoutiOS26 = settings
+        settingsWithoutiOS26.enableIOS26Changes = .off
+
+        let settingsData = try! JSONEncoder().encode(settingsWithoutiOS26)
         UserDefaults.standard.set(settingsData, forKey: PaymentSheetTestPlaygroundSettings.nsUserDefaultsKey)
 
         if let customerId {
@@ -1026,6 +1066,10 @@ extension PlaygroundController {
         } else {
             UserDefaults.standard.removeObject(forKey: PaymentSheetTestPlaygroundSettings.nsUserDefaultsCustomerIDKey)
         }
+
+        // save appearance setting
+        let appearanceData = try! JSONEncoder().encode(appearance)
+        UserDefaults.standard.set(appearanceData, forKey: PaymentSheetTestPlaygroundSettings.nsUserDefaultsAppearanceKey)
     }
 
     static func settingsFromDefaults() -> PaymentSheetTestPlaygroundSettings? {
@@ -1035,6 +1079,18 @@ extension PlaygroundController {
             } catch {
                 print("Unable to deserialize saved settings")
                 UserDefaults.standard.removeObject(forKey: PaymentSheetTestPlaygroundSettings.nsUserDefaultsKey)
+            }
+        }
+        return nil
+    }
+
+    static func appearanceFromDefaults() -> PaymentSheet.Appearance? {
+        if let appearanceData = UserDefaults.standard.value(forKey: PaymentSheetTestPlaygroundSettings.nsUserDefaultsAppearanceKey) as? Data {
+            do {
+                return try JSONDecoder().decode(PaymentSheet.Appearance.self, from: appearanceData)
+            } catch {
+                print("Unable to deserialize appearance: \(error)")
+                UserDefaults.standard.removeObject(forKey: PaymentSheetTestPlaygroundSettings.nsUserDefaultsAppearanceKey)
             }
         }
         return nil

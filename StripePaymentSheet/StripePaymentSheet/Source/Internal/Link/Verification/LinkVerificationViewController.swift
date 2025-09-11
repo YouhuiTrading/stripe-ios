@@ -26,6 +26,8 @@ final class LinkVerificationViewController: UIViewController {
         case completed
         /// Verification was canceled by the user.
         case canceled
+        /// The user requested to switch to a different account.
+        case switchAccount
         /// Verification failed due to an unrecoverable error.
         case failed(Error)
     }
@@ -35,12 +37,22 @@ final class LinkVerificationViewController: UIViewController {
     let mode: LinkVerificationView.Mode
     let linkAccount: PaymentSheetLinkAccount
 
+    private let appearance: LinkAppearance?
+    private let allowLogoutInDialog: Bool
+    private let consentViewModel: LinkConsentViewModel?
+
     private lazy var verificationView: LinkVerificationView = {
         guard linkAccount.redactedPhoneNumber != nil else {
             preconditionFailure("Verification(2FA) presented without a phone number on file")
         }
 
-        let verificationView = LinkVerificationView(mode: mode, linkAccount: linkAccount)
+        let verificationView = LinkVerificationView(
+            mode: mode,
+            linkAccount: linkAccount,
+            appearance: appearance,
+            allowLogoutInDialog: allowLogoutInDialog,
+            consentViewModel: consentViewModel
+        )
         verificationView.delegate = self
         verificationView.backgroundColor = .clear
         verificationView.translatesAutoresizingMaskIntoConstraints = false
@@ -56,10 +68,16 @@ final class LinkVerificationViewController: UIViewController {
 
     required init(
         mode: LinkVerificationView.Mode = .modal,
-        linkAccount: PaymentSheetLinkAccount
+        linkAccount: PaymentSheetLinkAccount,
+        appearance: LinkAppearance? = nil,
+        allowLogoutInDialog: Bool = false,
+        consentViewModel: LinkConsentViewModel? = nil
     ) {
         self.mode = mode
         self.linkAccount = linkAccount
+        self.appearance = appearance
+        self.allowLogoutInDialog = allowLogoutInDialog
+        self.consentViewModel = consentViewModel
         super.init(nibName: nil, bundle: nil)
 
         if mode.requiresModalPresentation {
@@ -112,27 +130,23 @@ final class LinkVerificationViewController: UIViewController {
 
         activityIndicator.startAnimating()
 
-        if linkAccount.sessionState == .requiresVerification {
-            verificationView.isHidden = true
+        verificationView.isHidden = true
 
-            linkAccount.startVerification { [weak self] result in
-                switch result {
-                case .success(let collectOTP):
-                    if collectOTP {
-                        self?.activityIndicator.stopAnimating()
-                        self?.verificationView.isHidden = false
-                        self?.verificationView.codeField.becomeFirstResponder()
-                    } else {
-                        // No OTP collection is required.
-                        self?.finish(withResult: .completed)
-                    }
-                case .failure(let error):
-                    STPAnalyticsClient.sharedClient.logLink2FAStartFailure()
-                    self?.finish(withResult: .failed(error))
+        linkAccount.startVerification { [weak self] result in
+            switch result {
+            case .success(let collectOTP):
+                if collectOTP {
+                    self?.activityIndicator.stopAnimating()
+                    self?.verificationView.isHidden = false
+                    self?.verificationView.codeField.becomeFirstResponder()
+                } else {
+                    // No OTP collection is required.
+                    self?.finish(withResult: .completed)
                 }
+            case .failure(let error):
+                STPAnalyticsClient.sharedClient.logLink2FAStartFailure()
+                self?.finish(withResult: .failed(error))
             }
-        } else {
-            verificationView.codeField.becomeFirstResponder()
         }
     }
 
@@ -192,13 +206,21 @@ extension LinkVerificationViewController: LinkVerificationViewDelegate {
 
     func verificationViewLogout(_ view: LinkVerificationView) {
         STPAnalyticsClient.sharedClient.logLink2FACancel()
-        finish(withResult: .canceled)
+        finish(withResult: .switchAccount)
     }
 
     func verificationView(_ view: LinkVerificationView, didEnterCode code: String) {
         view.codeField.resignFirstResponder()
 
-        linkAccount.verify(with: code) { [weak self] result in
+        // Check if inline consent was shown
+        let consentGranted: Bool?
+        if case .inline = consentViewModel {
+            consentGranted = true
+        } else {
+            consentGranted = nil
+        }
+
+        linkAccount.verify(with: code, consentGranted: consentGranted) { [weak self] result in
             switch result {
             case .success:
                 self?.finish(withResult: .completed)

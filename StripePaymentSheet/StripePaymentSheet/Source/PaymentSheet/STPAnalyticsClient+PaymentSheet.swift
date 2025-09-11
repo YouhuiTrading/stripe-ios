@@ -155,8 +155,18 @@ extension PaymentSheet.Appearance.EmbeddedPaymentElement.Row.Style {
             return "floating_button"
         case .flatWithCheckmark:
             return "flat_with_checkmark"
-        case .flatWithChevron:
-            return "flat_with_chevron"
+        case .flatWithDisclosure:
+            return "flat_with_disclosure"
         }
+    }
+}
+
+extension Dictionary where Key == STPPaymentMethodType, Value == PaymentSheet.TermsDisplay {
+    var analyticValue: [String: Any] {
+        var result: [String: Any] = [:]
+        for (paymentMethodType, termsDisplayValue) in self {
+            result[paymentMethodType.identifier] = termsDisplayValue.analyticValue
+        }
+        return result
     }
 }

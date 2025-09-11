@@ -1,10 +1,97 @@
-## X.Y.Z 2025-XX-YY
+## 24.23.1 2025-09-08
+
+### StripeCryptoOnramp
+* [Added] Additional APIs and improvements to support the development of the React Native StripeCryptoOnramp SDK.
+
+## 24.23.0 2025-09-02
+
+### CustomerSheet
+* [Added] `opensCardScannerAutomatically` configuration
+
+### PaymentSheet
+* [Added] `opensCardScannerAutomatically` configuration
+* [Fixed] Setting `appearance.borderWidth = 0` previously caused the thickness of divider lines between input fields to also be 0, causing them to disappear. They now have a minimum thickness of 0.5.
+
+### EmbeddedPaymentElement
+* [Added] `opensCardScannerAutomatically` configuration
+
+## 24.22.0 2025-08-27
+
+### StripeCryptoOnramp
+* [Added] Additional APIs and improvements to support the development of the React Native StripeCryptoOnramp SDK.
+
+## 24.21.2 2025-08-27
+
+### PaymentSheet
+* [Changed] Updated translations for Link signup opt-in copy
+
+## 24.21.1 2025-08-26
+
+### PaymentSheet
+* [Changed] Updated copy for Link signup opt-in UI
+
+## 24.21.0 2025-08-25
+
+### CustomerSheet
+* [Fixed] Fixed Dynamic Actor Isolation crash in SwiftUI when using completion handlers with Swift 6 or Dynamic Actor Isolation feature flag enabled. Thanks @BrentMifsud! ([#5269](https://github.com/stripe/stripe-ios/issues/5269))
+
+### PaymentSheet
+* [Added] Added new `presentPaymentOptions` APIs for UIKit and SwiftUI with a `didCancel` bool in the completion handler, making it possible to differentiate between a user closing FlowController and selecting a payment option. ([#5202](https://github.com/stripe/stripe-ios/pull/5202))
+* [Added] Added a new `allowedCountries` API to PaymentSheetConfiguration, enabling users to only allow billing addresses in certain countries.
+* [Fixed] Fixed Dynamic Actor Isolation crash in SwiftUI when using completion handlers with Swift 6 or Dynamic Actor Isolation feature flag enabled. Thanks @BrentMifsud! ([#5269](https://github.com/stripe/stripe-ios/issues/5269))
+* [Changed] The form will now highlight incomplete fields when the user taps a disabled "Confirm" button.
+* [Added] `STPError.localizedUserMessage(forErrorCode:)` will translates common Stripe API error codes to localized strings.
+
+## 24.20.0 2025-08-11
+
+### StripeApplePay
+* [Fixed] Issue when deserializing intent when line1 is null
+
+### PaymentSheet
+* [Fixed] Fixed an issue that caused EmbeddedPaymentElement to log broken layout constraints.
+* [Fixed] The Apple Pay logo in `PaymentOptionDisplayData` no longer contains additional padding, bringing it in line with other payment method logos.
+* [Changed] When phone number or email address collection is enabled, these fields will now appear in the billing details section instead of appearing above the card field.
+* [Added] Added `termsDisplay` in PaymentSheet.Configuration to control when legal agreements are displayed
+
+### EmbeddedPaymentElement
+* [Changed] When using `EmbeddedPaymentElement.Configuration.FormSheetAction.confirm`, the completion block is now called with a `canceled` result if the user closes the form sheet without completing the transaction.
+* [Added] You no longer need to set the backend PaymentIntent setup_future_usage or payment_method_options setup_future_usage values to match the client's IntentConfiguration; the client will automatically configure this for you.
+
+## 24.19.0 2025-08-04
+
+### PaymentSheet
+* [Fixed] Updated default spacing of form elements in PaymentSheet.
+* [Added] EmbeddedPaymentElement now shows mandates in a form sheet when `rowSelectionBehavior` is `immediateAction` and `embeddedViewDisplaysMandateText` is `true`. Previously, this configuration was an error.
+
+## 24.18.1 2025-07-29
+* [Fixed] Improved Klarna payments when using Universal Links.
+
+## 24.18.0 2025-07-28
+
+* [Added] Postal code validation for Canada and UK addresses
+
+### PaymentSheet
+* [Added] Added `Appearance.EmbeddedPaymentElement.Row.subtitleFont` to customize the font of EmbeddedPaymentElement payment method row subtitles.
+
+## 24.17.0 2025-07-21
+
 ### PaymentSheet
 * [Fixed] EmbeddedPaymentElement now errors when `configuration.rowSelectionBehavior` is `.immediateAction` and `configuration.embeddedViewDisplaysMandateText` is `true` to ensure integrations display legal mandate text to the customer.
+* [Deprecated] Carthage is no longer officially supported. We will continue to publish binaries to the GitHub releases page for Carthage, but we will no longer test using the Carthage CLI tool.
+* [Added] Added `Appearance.EmbeddedPaymentElement.Row.paymentMethodIconLayoutMargins` to customize the spacing around payment method icons in EmbeddedPaymentElement payment method rows.
+* [Added] Added `Appearance.EmbeddedPaymentElement.Row.titleFont` to customize the font of EmbeddedPaymentElement payment method row titles.
+* [Changed] Renamed `PaymentSheet.Appearance.EmbeddedPaymentElement.Row.Style.flatWithChevron` to `PaymentSheet.Appearance.EmbeddedPaymentElement.Row.Style.flatWithDisclosure` and added an experimental `disclosureImage` property to customize the chevron icon displayed in EmbeddedPaymentElement payment method rows when the row style is flatWithDisclosure.
+* [Fixed] `EmbeddedPaymentElementDelegate` `didUpdateHeight` now accommodates cases where the embedded view can't change height until after `didUpdateHeight` is called, like inside a UITableViewCell.
+* [Fixed] Apple Pay now properly collects phone number and email address when marked as required in `PaymentSheet.Configuration.billingDetailsCollectionConfiguration`.
+
+### AddressElement
+* [Added] SwiftUI support for AddressElement.
+* [Changed] `AddressViewController` now notifies its delegate when the sheet is dismissed, whether by tapping the **Close** button or swiping down, so `AddressElement` always returns the current address.
+
+### General
+* [Removed] Removed nn-NO (Norwegian Nynorsk) localization. Norwegian users can continue using nb (Norwegian Bokmål) localization.
 
 ## 24.16.2 2025-07-07
-
-* [Deprecated] Carthage is no longer officially supported. We will continue to publish binaries to the GitHub releases page for Carthage, but we will no longer test the Carthage CLI tool.
 
 ### PaymentSheet
 * [Added] Address autocomplete functionality when collecting full billing details in payment method forms.
