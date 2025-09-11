@@ -12,7 +12,8 @@ import UIKit
 /**
  A rounded, lightly shadowed container view with a thin border.
  You can put views like TextFieldView inside it.
- 
+ It displays its views in a vertical stack with dividers between them.
+
  - Note: This class sets the borderWidth, color, cornerRadius, etc. of its subviews.
  
  For internal SDK use only
@@ -35,6 +36,7 @@ class SectionContainerView: UIView {
         return view
     }()
 
+    /// The list of views to display in a vertical stack
     private(set) var views: [UIView]
     private let theme: ElementsAppearance
 
@@ -65,34 +67,6 @@ class SectionContainerView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        // Set up each subviews border corners
-        // Do this in layoutSubviews to update when views appear or disappear
-        let visibleRows = stackView.arrangedSubviews.filter { !$0.isHidden }
-        // 1. Reset all border corners to be square
-        for row in visibleRows {
-            // Pull out any Element views nested inside a MultiElementRowView
-            for view in (row as? MultiElementRowView)?.views ?? [row] {
-                view.layer.cornerRadius = theme.cornerRadius
-                view.layer.maskedCorners = []
-                view.layer.shadowOpacity = 0.0
-                view.layer.borderWidth = 0
-                view.layer.masksToBounds = true
-            }
-        }
-        // 2. Round the top-most view's top corners
-        if let multiElementRowView = visibleRows.first as? MultiElementRowView {
-            multiElementRowView.views.first?.layer.maskedCorners.insert([.layerMinXMinYCorner])
-            multiElementRowView.views.last?.layer.maskedCorners.insert([.layerMaxXMinYCorner])
-        } else {
-            visibleRows.first?.layer.maskedCorners.insert([.layerMinXMinYCorner, .layerMaxXMinYCorner])
-        }
-        // 3. Round the bottom-most view's bottom corners
-        if let multiElementRowView = visibleRows.last as? MultiElementRowView {
-            multiElementRowView.views.first?.layer.maskedCorners.insert([.layerMinXMaxYCorner])
-            multiElementRowView.views.last?.layer.maskedCorners.insert([.layerMaxXMaxYCorner])
-        } else {
-            visibleRows.last?.layer.maskedCorners.insert([.layerMaxXMaxYCorner, .layerMinXMaxYCorner])
-        }
 
         // Improve shadow performance
         layer.shadowPath = CGPath(
@@ -124,8 +98,12 @@ class SectionContainerView: UIView {
     // MARK: - Internal methods
     func updateUI(newViews: [UIView]? = nil) {
         layer.applyShadow(shadow: theme.shadow)
-        layer.cornerRadius = theme.cornerRadius
-
+        // We apply corner radius here so that our shadow uses it too.
+        if LiquidGlassDetector.isEnabled {
+            ios26_applyDefaultCornerConfiguration()
+        } else {
+            layer.cornerRadius = theme.cornerRadius
+        }
         if isUserInteractionEnabled || UITraitCollection.current.isDarkMode {
             backgroundColor = theme.colors.componentBackground
         } else {
@@ -224,16 +202,30 @@ extension SectionContainerView: EventHandler {
 
 extension SectionContainerView {
     class MultiElementRowView: UIView {
-        let views: [UIView]
-
         init(views: [UIView], theme: ElementsAppearance = .default) {
-            self.views = views
             super.init(frame: .zero)
-            let stackView = buildStackView(views: views, theme: theme)
+
+            // Add dividers between the views
+            func createDivider() -> UIView {
+                let divider = UIView.makeSpacerView(width: theme.separatorWidth)
+                divider.backgroundColor = theme.colors.divider
+                divider.translatesAutoresizingMaskIntoConstraints = false
+                return divider
+            }
+            let viewsWithDividersBetweenEach = views.enumerated().flatMap { index, view in
+                index == views.count - 1 ? [view] : [view, createDivider()]
+            }
+
+            // Make the stackview
+            let stackView = UIStackView(arrangedSubviews: viewsWithDividersBetweenEach)
             stackView.axis = .horizontal
-            stackView.drawBorder = false
-            stackView.distribution = .fillEqually
+            stackView.distribution = .fill
             addAndPinSubview(stackView)
+
+            // Make all views equal width
+            for i in 1..<views.count {
+                views[i].widthAnchor.constraint(equalTo: views[0].widthAnchor).isActive = true
+            }
         }
         required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     }
@@ -241,15 +233,31 @@ extension SectionContainerView {
 
 // MARK: - StackViewWithSeparator
 
+/// Builds the primary stack view that contains all others.
+/// ⚠️ Don't modify stackView properties outside of this or it won't carry over when we call `buildStackView` again in `updateUI`
 private func buildStackView(views: [UIView], theme: ElementsAppearance = .default) -> StackViewWithSeparator {
     let stackView = StackViewWithSeparator(arrangedSubviews: views)
     stackView.axis = .vertical
-    stackView.spacing = theme.borderWidth
+    stackView.spacing = theme.separatorWidth
     stackView.separatorColor = theme.colors.divider
+    stackView.borderWidth = theme.borderWidth
     stackView.borderColor = theme.colors.border
-    stackView.borderCornerRadius = theme.cornerRadius
     stackView.customBackgroundColor = theme.colors.componentBackground
     stackView.drawBorder = true
     stackView.hideShadow = true // Shadow is handled by `SectionContainerView`
+    if LiquidGlassDetector.isEnabled {
+        // Since StackViewWithSeparator draws its own borders on its `backgroundView`, we must apply the corner radius to the background view.
+        stackView.backgroundView.ios26_applyDefaultCornerConfiguration()
+    } else {
+        stackView.borderCornerRadius = theme.cornerRadius
+    }
+    // Prevent subviews (specifically, TextFieldView's `transparentMaskView`) from extending outside the corners:
+    stackView.clipsToBounds = true
+    // Note that StackViewWithSeparator's subviews are not subviews of the `backgroundView`, so we have to round the stackview's corners too :(
+    if LiquidGlassDetector.isEnabled {
+        stackView.ios26_applyDefaultCornerConfiguration()
+    } else {
+        stackView.layer.cornerRadius = theme.cornerRadius
+    }
     return stackView
 }

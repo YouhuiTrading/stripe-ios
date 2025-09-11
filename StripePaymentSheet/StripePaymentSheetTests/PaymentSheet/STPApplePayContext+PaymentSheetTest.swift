@@ -7,7 +7,7 @@
 
 @testable import StripeApplePay
 @_spi(STP) import StripeCore
-@testable @_spi(PaymentMethodOptionsSetupFutureUsagePreview) import StripePaymentSheet
+@testable @_spi(PaymentMethodOptionsSetupFutureUsagePreview) @_spi(SharedPaymentToken) import StripePaymentSheet
 @testable import StripePaymentsTestUtils
 import XCTest
 
@@ -169,6 +169,129 @@ final class STPApplePayContext_PaymentSheetTest: XCTestCase {
                 XCTAssertEqual(sut.applePayLaterAvailability, .unavailable(.recurringTransaction))
             }
         }
+    }
+
+    func testCreatePaymentRequest_requiredContactFields_billingOnly() {
+        var config = PaymentSheet.Configuration._testValue_MostPermissive()
+        config.applePay = applePayConfiguration
+        config.billingDetailsCollectionConfiguration.name = .always
+        config.billingDetailsCollectionConfiguration.address = .full
+        config.billingDetailsCollectionConfiguration.email = .never
+        config.billingDetailsCollectionConfiguration.phone = .never
+
+        let intent = Intent._testValue()
+        let sut = STPApplePayContext.createPaymentRequest(intent: intent, configuration: config, applePay: applePayConfiguration)
+
+        XCTAssertTrue(sut.requiredBillingContactFields.contains(.name))
+        XCTAssertTrue(sut.requiredBillingContactFields.contains(.postalAddress))
+        XCTAssertFalse(sut.requiredBillingContactFields.contains(.emailAddress))
+        XCTAssertFalse(sut.requiredBillingContactFields.contains(.phoneNumber))
+        XCTAssertTrue(sut.requiredShippingContactFields.isEmpty)
+    }
+
+    func testCreatePaymentRequest_requiredContactFields_phoneAndEmailToShipping() {
+        var config = PaymentSheet.Configuration._testValue_MostPermissive()
+        config.applePay = applePayConfiguration
+        config.billingDetailsCollectionConfiguration.name = .always
+        config.billingDetailsCollectionConfiguration.address = .full
+        config.billingDetailsCollectionConfiguration.email = .always
+        config.billingDetailsCollectionConfiguration.phone = .always
+
+        let intent = Intent._testValue()
+        let sut = STPApplePayContext.createPaymentRequest(intent: intent, configuration: config, applePay: applePayConfiguration)
+
+        // Billing should only have name and address
+        XCTAssertTrue(sut.requiredBillingContactFields.contains(.name))
+        XCTAssertTrue(sut.requiredBillingContactFields.contains(.postalAddress))
+        XCTAssertFalse(sut.requiredBillingContactFields.contains(.emailAddress))
+        XCTAssertFalse(sut.requiredBillingContactFields.contains(.phoneNumber))
+
+        // Phone and email should go to shipping
+        XCTAssertTrue(sut.requiredShippingContactFields.contains(.emailAddress))
+        XCTAssertTrue(sut.requiredShippingContactFields.contains(.phoneNumber))
+    }
+
+    func testCreatePaymentRequest_requiredContactFields_emailOnly() {
+        var config = PaymentSheet.Configuration._testValue_MostPermissive()
+        config.applePay = applePayConfiguration
+        config.billingDetailsCollectionConfiguration.email = .always
+        config.billingDetailsCollectionConfiguration.phone = .never
+
+        let intent = Intent._testValue()
+        let sut = STPApplePayContext.createPaymentRequest(intent: intent, configuration: config, applePay: applePayConfiguration)
+
+        XCTAssertFalse(sut.requiredBillingContactFields.contains(.emailAddress))
+        XCTAssertFalse(sut.requiredBillingContactFields.contains(.phoneNumber))
+        XCTAssertTrue(sut.requiredShippingContactFields.contains(.emailAddress))
+        XCTAssertFalse(sut.requiredShippingContactFields.contains(.phoneNumber))
+    }
+
+    func testCreatePaymentRequest_requiredContactFields_phoneOnly() {
+        var config = PaymentSheet.Configuration._testValue_MostPermissive()
+        config.applePay = applePayConfiguration
+        config.billingDetailsCollectionConfiguration.email = .never
+        config.billingDetailsCollectionConfiguration.phone = .always
+
+        let intent = Intent._testValue()
+        let sut = STPApplePayContext.createPaymentRequest(intent: intent, configuration: config, applePay: applePayConfiguration)
+
+        XCTAssertFalse(sut.requiredBillingContactFields.contains(.emailAddress))
+        XCTAssertFalse(sut.requiredBillingContactFields.contains(.phoneNumber))
+        XCTAssertFalse(sut.requiredShippingContactFields.contains(.emailAddress))
+        XCTAssertTrue(sut.requiredShippingContactFields.contains(.phoneNumber))
+    }
+
+    func testCreatePaymentRequest_label_normalIntent() {
+        var configuration = configuration
+        configuration.merchantDisplayName = "Merchant Name"
+        let intent = Intent._testValue()
+        let sut = STPApplePayContext.createPaymentRequest(intent: intent, configuration: configuration, applePay: applePayConfiguration)
+        XCTAssertEqual(sut.paymentSummaryItems[0].label, "Merchant Name")
+    }
+
+    func testCreatePaymentRequest_label_deferredIntentWithoutSellerDetails() {
+        var configuration = configuration
+        configuration.merchantDisplayName = "Merchant Name"
+        let deferredIntent = Intent.deferredIntent(
+            intentConfig: .init(
+                mode: .payment(amount: 2345, currency: "USD"),
+                confirmHandler: dummyDeferredConfirmHandler
+            )
+        )
+        let sut = STPApplePayContext.createPaymentRequest(intent: deferredIntent, configuration: configuration, applePay: applePayConfiguration)
+        XCTAssertEqual(sut.paymentSummaryItems[0].label, "Merchant Name")
+    }
+
+    func testCreatePaymentRequest_label_sptDeferredIntentWithoutSellerDetails() {
+        var configuration = configuration
+        configuration.merchantDisplayName = "Merchant Name"
+        let deferredIntent = Intent.deferredIntent(
+            intentConfig: .init(
+                sharedPaymentTokenSessionWithMode: .payment(amount: 2345, currency: "USD"),
+                sellerDetails: nil,
+                preparePaymentMethodHandler: { _, _ in /* no-op */ }
+            )
+        )
+        let sut = STPApplePayContext.createPaymentRequest(intent: deferredIntent, configuration: configuration, applePay: applePayConfiguration)
+        XCTAssertEqual(sut.paymentSummaryItems[0].label, "Merchant Name")
+    }
+
+    func testCreatePaymentRequest_label_sptDeferredIntentWithSellerDetails() {
+        var configuration = configuration
+        configuration.merchantDisplayName = "Merchant Name"
+        let deferredIntent = Intent.deferredIntent(
+            intentConfig: .init(
+                sharedPaymentTokenSessionWithMode: .payment(amount: 2345, currency: "USD"),
+                sellerDetails: .init(
+                    networkId: "networkID",
+                    externalId: "externalID",
+                    businessName: "Something different from the merchant name"
+                ),
+                preparePaymentMethodHandler: { _, _ in /* no-op */ }
+            )
+        )
+        let sut = STPApplePayContext.createPaymentRequest(intent: deferredIntent, configuration: configuration, applePay: applePayConfiguration)
+        XCTAssertEqual(sut.paymentSummaryItems[0].label, "Something different from the merchant name")
     }
 }
 

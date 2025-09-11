@@ -41,6 +41,9 @@ import Foundation
     /// Country code of the merchant.
     let merchantCountryCode: String?
 
+    /// Link to the merchant's logo asset.
+    let merchantLogoUrl: URL?
+
     /// A map describing payment method types form specs.
     let paymentMethodSpecs: [[AnyHashable: Any]]?
 
@@ -54,6 +57,9 @@ import Foundation
 
     /// An ordered list of custom payment methods to display
     let customPaymentMethods: [CustomPaymentMethod]
+
+    /// An object that contains information for the passive captcha
+    let passiveCaptcha: PassiveCaptcha?
 
     let customer: ElementsCustomer?
 
@@ -70,6 +76,7 @@ import Foundation
         unactivatedPaymentMethodTypes: [STPPaymentMethodType],
         countryCode: String?,
         merchantCountryCode: String?,
+        merchantLogoUrl: URL?,
         linkSettings: LinkSettings?,
         experimentsData: ExperimentsData?,
         flags: [String: Bool],
@@ -78,6 +85,7 @@ import Foundation
         isApplePayEnabled: Bool,
         externalPaymentMethods: [ExternalPaymentMethod],
         customPaymentMethods: [CustomPaymentMethod],
+        passiveCaptcha: PassiveCaptcha?,
         customer: ElementsCustomer?,
         isBackupInstance: Bool = false
     ) {
@@ -88,6 +96,7 @@ import Foundation
         self.unactivatedPaymentMethodTypes = unactivatedPaymentMethodTypes
         self.countryCode = countryCode
         self.merchantCountryCode = merchantCountryCode
+        self.merchantLogoUrl = merchantLogoUrl
         self.linkSettings = linkSettings
         self.experimentsData = experimentsData
         self.flags = flags
@@ -96,6 +105,7 @@ import Foundation
         self.isApplePayEnabled = isApplePayEnabled
         self.externalPaymentMethods = externalPaymentMethods
         self.customPaymentMethods = customPaymentMethods
+        self.passiveCaptcha = passiveCaptcha
         self.customer = customer
         self.isBackupInstance = isBackupInstance
         super.init()
@@ -131,6 +141,7 @@ import Foundation
             unactivatedPaymentMethodTypes: [],
             countryCode: nil,
             merchantCountryCode: nil,
+            merchantLogoUrl: nil,
             linkSettings: nil,
             experimentsData: nil,
             flags: [:],
@@ -139,6 +150,7 @@ import Foundation
             isApplePayEnabled: true,
             externalPaymentMethods: [],
             customPaymentMethods: [],
+            passiveCaptcha: nil,
             customer: nil,
             isBackupInstance: true
         )
@@ -195,6 +207,18 @@ extension STPElementsSession: STPAPIResponseDecodable {
             return epms
         }()
 
+        let passiveCaptcha: PassiveCaptcha? = {
+            let enablePassiveCaptcha = flags["elements_enable_passive_captcha"] ?? false
+            let passiveCaptchaKey = "passive_captcha"
+            guard enablePassiveCaptcha,
+                  let passiveCaptchaJSON = response[passiveCaptchaKey] as? [AnyHashable: Any],
+                  let passiveCaptcha = PassiveCaptcha.decoded(fromAPIResponse: passiveCaptchaJSON)
+            else {
+                return nil
+            }
+            return passiveCaptcha
+        }()
+
         let customPaymentMethods: [CustomPaymentMethod] = {
             let customPaymentMethodDataKey = "custom_payment_method_data"
             guard response[customPaymentMethodDataKey] != nil, !(response[customPaymentMethodDataKey] is NSNull) else {
@@ -220,6 +244,7 @@ extension STPElementsSession: STPAPIResponseDecodable {
             unactivatedPaymentMethodTypes: unactivatedPaymentMethodTypeStrings.map({ STPPaymentMethod.type(from: $0) }),
             countryCode: paymentMethodPrefDict["country_code"] as? String,
             merchantCountryCode: response["merchant_country"] as? String,
+            merchantLogoUrl: (response["merchant_logo_url"] as? String).flatMap { URL(string: $0) },
             linkSettings: LinkSettings.decodedObject(
                 fromAPIResponse: response["link_settings"] as? [AnyHashable: Any]
             ),
@@ -232,6 +257,7 @@ extension STPElementsSession: STPAPIResponseDecodable {
             isApplePayEnabled: isApplePayEnabled,
             externalPaymentMethods: externalPaymentMethods,
             customPaymentMethods: customPaymentMethods,
+            passiveCaptcha: passiveCaptcha,
             customer: customer
         )
     }
@@ -252,12 +278,23 @@ extension STPElementsSession {
         if let customerSession = customer?.customerSession {
             if customerSession.mobilePaymentElementComponent.enabled,
                let features = customerSession.mobilePaymentElementComponent.features {
-                allowsRemovalOfPaymentMethods = features.paymentMethodRemove
+                allowsRemovalOfPaymentMethods = features.paymentMethodRemove == .enabled || features.paymentMethodRemove == .partial
             }
         } else {
             allowsRemovalOfPaymentMethods = true
         }
         return allowsRemovalOfPaymentMethods
+    }
+
+    func paymentMethodRemoveIsPartialForPaymentSheet() -> Bool {
+        let isParital = false
+        if let customerSession = customer?.customerSession {
+            if customerSession.mobilePaymentElementComponent.enabled,
+               let features = customerSession.mobilePaymentElementComponent.features {
+                return features.paymentMethodRemove == .partial
+            }
+        }
+        return isParital
     }
 
     func paymentMethodRemoveLast(configuration: PaymentElementConfiguration) -> Bool{
@@ -287,12 +324,22 @@ extension STPElementsSession {
         if let customerSession = customer?.customerSession {
             if customerSession.customerSheetComponent.enabled,
                let features = customerSession.customerSheetComponent.features {
-                allowsRemovalOfPaymentMethods = features.paymentMethodRemove
+                allowsRemovalOfPaymentMethods = features.paymentMethodRemove == .enabled || features.paymentMethodRemove == .partial
             }
         } else {
             allowsRemovalOfPaymentMethods = true
         }
         return allowsRemovalOfPaymentMethods
+    }
+    func paymentMethodRemoveIsPartialForCustomerSheet() -> Bool {
+        let isParital = false
+        if let customerSession = customer?.customerSession {
+            if customerSession.customerSheetComponent.enabled,
+               let features = customerSession.customerSheetComponent.features {
+                return features.paymentMethodRemove == .partial
+            }
+        }
+        return isParital
     }
     var paymentMethodRemoveLastForCustomerSheet: Bool {
         return customer?.customerSession.customerSheetComponent.features?.paymentMethodRemoveLast ?? true
@@ -312,6 +359,18 @@ extension STPElementsSession {
 
     var allowsLinkDefaultOptIn: Bool {
         linkFlags["link_mobile_disable_default_opt_in"] != true
+    }
+
+    var forceSaveFutureUseBehaviorAndNewMandateText: Bool {
+        flags["elements_mobile_force_setup_future_use_behavior_and_new_mandate_text"] == true
+    }
+
+    var linkSignupOptInFeatureEnabled: Bool {
+        linkFlags["link_sign_up_opt_in_feature_enabled"] == true
+    }
+
+    var linkSignupOptInInitialValue: Bool {
+        linkFlags["link_sign_up_opt_in_initial_value"] == true
     }
 }
 
@@ -345,5 +404,27 @@ extension STPElementsSession {
             return false
         }
         return true
+    }
+}
+
+extension STPElementsSession {
+    func computeAllowRedisplay(isSettingUp: Bool) -> STPPaymentMethodAllowRedisplay? {
+        guard let customerSessionMobilePaymentElementFeatures else {
+            return nil
+        }
+
+        let allowRedisplayOverride = customerSessionMobilePaymentElementFeatures.paymentMethodSaveAllowRedisplayOverride
+
+        if isSettingUp {
+            return allowRedisplayOverride ?? .limited
+        } else {
+            return .unspecified
+        }
+    }
+
+    var useCardPaymentMethodTypeForIBP: Bool {
+        let canAcceptACH = orderedPaymentMethodTypes.contains(.USBankAccount)
+        let isLinkCardBrand = linkSettings?.linkMode?.isPantherPayment ?? false
+        return isLinkCardBrand && !canAcceptACH
     }
 }

@@ -11,10 +11,12 @@
 @_spi(STP) import StripeUICore
 import UIKit
 
-protocol PaymentSheetLinkAccountInfoProtocol {
-    var email: String { get }
-    var redactedPhoneNumber: String? { get }
-    var isRegistered: Bool { get }
+@_spi(STP) public protocol PaymentSheetLinkAccountInfoProtocol {
+    @_spi(STP) var email: String { get }
+    @_spi(STP) var redactedPhoneNumber: String? { get }
+    @_spi(STP) var isRegistered: Bool { get }
+    @_spi(STP) var sessionState: PaymentSheetLinkAccount.SessionState { get }
+    @_spi(STP) var consumerSessionClientSecret: String? { get }
 }
 
 struct LinkPMDisplayDetails {
@@ -22,15 +24,15 @@ struct LinkPMDisplayDetails {
     let brand: STPCardBrand
 }
 
-class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
-    enum SessionState: String {
+@_spi(STP) public class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
+    @_spi(STP) public enum SessionState: String {
         case requiresSignUp
         case requiresVerification
         case verified
     }
 
     // More information: go/link-signup-consent-action-log
-    enum ConsentAction: String {
+    @_spi(STP) public enum ConsentAction: String {
         // Checkbox, no fields prefilled
         case checkbox_v0 = "clicked_checkbox_nospm_mobile_v0"
 
@@ -57,6 +59,15 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
 
         // Checkbox pre-checked, no fields prefilled
         case prechecked_opt_in_box_prefilled_none = "prechecked_opt_in_box_prefilled_none"
+
+        // Crypto onramp, email and phone number are entered, a sign up button is tapped
+        case entered_phone_number_email_clicked_signup_crypto_onramp = "entered_phone_number_email_clicked_signup_crypto_onramp"
+
+        // Checkbox pre-checked, signup data inferred from billing details or customer information
+        case sign_up_opt_in_mobile_prechecked = "sign_up_opt_in_mobile_prechecked"
+
+        // Checkbox checked, signup data inferred from billing details or customer information
+        case sign_up_opt_in_mobile_checked = "sign_up_opt_in_mobile_checked"
     }
 
     // Dependencies
@@ -64,6 +75,8 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
     let cookieStore: LinkCookieStore
 
     let useMobileEndpoints: Bool
+    let requestSurface: LinkRequestSurface
+    let createdFromAuthIntentID: Bool
 
     /// Publishable key of the Consumer Account.
     private(set) var publishableKey: String?
@@ -73,17 +86,17 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
     var phoneNumberUsedInSignup: String?
     var nameUsedInSignup: String?
 
-    let email: String
+    @_spi(STP) public let email: String
 
-    var redactedPhoneNumber: String? {
+    @_spi(STP) public var redactedPhoneNumber: String? {
         return currentSession?.redactedFormattedPhoneNumber.replacingOccurrences(of: "*", with: "•")
     }
 
-    var isRegistered: Bool {
+    @_spi(STP) public var isRegistered: Bool {
         return currentSession != nil
     }
 
-    var sessionState: SessionState {
+    @_spi(STP) public var sessionState: SessionState {
         if let currentSession = currentSession {
             // sms verification is not required if we are in the signup flow
             return currentSession.hasVerifiedSMSSession || currentSession.isVerifiedForSignup
@@ -91,6 +104,10 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
         } else {
             return .requiresSignUp
         }
+    }
+
+    @_spi(STP) public var consumerSessionClientSecret: String? {
+        currentSession?.clientSecret
     }
 
     var hasStartedSMSVerification: Bool {
@@ -101,41 +118,53 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
         return currentSession?.hasVerifiedSMSSession ?? false
     }
 
+    var isInSignupFlow: Bool {
+        currentSession?.isVerifiedForSignup ?? false
+    }
+
     private(set) var currentSession: ConsumerSession?
+    let displayablePaymentDetails: ConsumerSession.DisplayablePaymentDetails?
 
     init(
         email: String,
         session: ConsumerSession?,
         publishableKey: String?,
+        displayablePaymentDetails: ConsumerSession.DisplayablePaymentDetails?,
         apiClient: STPAPIClient = .shared,
         cookieStore: LinkCookieStore = LinkSecureCookieStore.shared,
-        useMobileEndpoints: Bool
+        useMobileEndpoints: Bool,
+        requestSurface: LinkRequestSurface = .default,
+        createdFromAuthIntentID: Bool = false
     ) {
         self.email = email
         self.currentSession = session
         self.publishableKey = publishableKey
+        self.displayablePaymentDetails = displayablePaymentDetails
         self.apiClient = apiClient
         self.cookieStore = cookieStore
         self.useMobileEndpoints = useMobileEndpoints
+        self.requestSurface = requestSurface
+        self.createdFromAuthIntentID = createdFromAuthIntentID
     }
 
     func signUp(
-        with phoneNumber: PhoneNumber,
+        with phoneNumber: PhoneNumber?,
         legalName: String?,
+        countryCode: String?,
         consentAction: ConsentAction,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
         signUp(
-            with: phoneNumber.string(as: .e164),
+            with: phoneNumber?.string(as: .e164),
             legalName: legalName,
-            countryCode: phoneNumber.countryCode,
+            countryCode: phoneNumber?.countryCode ?? countryCode,
             consentAction: consentAction,
             completion: completion
         )
     }
 
     func signUp(
-        with phoneNumber: String,
+        with phoneNumber: String?,
         legalName: String?,
         countryCode: String?,
         consentAction: ConsentAction,
@@ -160,7 +189,8 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
             countryCode: countryCode,
             consentAction: consentAction.rawValue,
             useMobileEndpoints: useMobileEndpoints,
-            with: apiClient
+            with: apiClient,
+            requestSurface: requestSurface
         ) { [weak self] result in
             switch result {
             case .success(let signupResponse):
@@ -174,13 +204,6 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
     }
 
     func startVerification(completion: @escaping (Result<Bool, Error>) -> Void) {
-        guard case .requiresVerification = sessionState else {
-            DispatchQueue.main.async {
-                completion(.success(false))
-            }
-            return
-        }
-
         guard let session = currentSession else {
             stpAssertionFailure()
             DispatchQueue.main.async {
@@ -196,7 +219,8 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
         session.startVerification(
             with: apiClient,
             cookieStore: cookieStore,
-            consumerAccountPublishableKey: publishableKey
+            consumerAccountPublishableKey: publishableKey,
+            requestSurface: requestSurface
         ) { [weak self] result in
             switch result {
             case .success(let newSession):
@@ -208,7 +232,11 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
         }
     }
 
-    func verify(with oneTimePasscode: String, completion: @escaping (Result<Void, Error>) -> Void) {
+    func verify(
+        with oneTimePasscode: String,
+        consentGranted: Bool? = nil,
+        completion: @escaping (Result<Void, Error>) -> Void
+    ) {
         guard case .requiresVerification = sessionState,
             hasStartedSMSVerification,
             let session = currentSession
@@ -228,7 +256,9 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
             with: oneTimePasscode,
             with: apiClient,
             cookieStore: cookieStore,
-            consumerAccountPublishableKey: publishableKey
+            consumerAccountPublishableKey: publishableKey,
+            requestSurface: requestSurface,
+            consentGranted: consentGranted
         ) { [weak self] result in
             switch result {
             case .success(let verifiedSession):
@@ -258,6 +288,7 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
 
             session.createLinkAccountSession(
                 consumerAccountPublishableKey: self.publishableKey,
+                requestSurface: self.requestSurface,
                 completion: completionRetryingOnAuthErrors
             )
         }
@@ -265,6 +296,7 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
 
     func createPaymentDetails(
         with paymentMethodParams: STPPaymentMethodParams,
+        isDefault: Bool,
         completion: @escaping (Result<ConsumerPaymentDetails, Error>) -> Void
     ) {
         retryingOnAuthError(completion: completion) { completionRetryingOnAuthErrors in
@@ -280,6 +312,8 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
                 paymentMethodParams: paymentMethodParams,
                 with: self.apiClient,
                 consumerAccountPublishableKey: self.publishableKey,
+                isDefault: isDefault,
+                requestSurface: self.requestSurface,
                 completion: completionRetryingOnAuthErrors
             )
         }
@@ -301,16 +335,21 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
                 linkedAccountId: linkedAccountId,
                 consumerAccountPublishableKey: self.publishableKey,
                 isDefault: isDefault,
+                requestSurface: self.requestSurface,
                 completion: completionRetryingOnAuthErrors
             )
         }
     }
 
     func listPaymentDetails(
-        supportedTypes: [ConsumerPaymentDetails.DetailsType]
+        supportedTypes: [ConsumerPaymentDetails.DetailsType],
+        shouldRetryOnAuthError: Bool = true
     ) async throws -> [ConsumerPaymentDetails] {
         return try await withCheckedThrowingContinuation { continuation in
-            listPaymentDetails(supportedTypes: supportedTypes) { result in
+            listPaymentDetails(
+                supportedTypes: supportedTypes,
+                shouldRetryOnAuthError: shouldRetryOnAuthError
+            ) { result in
                 switch result {
                 case .success(let details):
                     continuation.resume(returning: details)
@@ -323,9 +362,13 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
 
     func listPaymentDetails(
         supportedTypes: [ConsumerPaymentDetails.DetailsType],
+        shouldRetryOnAuthError: Bool = true,
         completion: @escaping (Result<[ConsumerPaymentDetails], Error>) -> Void
     ) {
-        retryingOnAuthError(completion: completion) { completionRetryingOnAuthErrors in
+        retryingOnAuthError(
+            shouldRetry: shouldRetryOnAuthError,
+            completion: completion
+        ) { completionRetryingOnAuthErrors in
             guard let session = self.currentSession else {
                 stpAssertionFailure()
                 completion(.failure(PaymentSheetError.unknown(debugDescription: "Paying with Link without valid session")))
@@ -336,14 +379,17 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
                 with: self.apiClient,
                 supportedPaymentDetailsTypes: supportedTypes,
                 consumerAccountPublishableKey: self.publishableKey,
+                requestSurface: self.requestSurface,
                 completion: completionRetryingOnAuthErrors
             )
         }
     }
 
-    func listShippingAddress() async throws -> ShippingAddressesResponse {
+    func listShippingAddress(
+        shouldRetryOnAuthError: Bool = true
+    ) async throws -> ShippingAddressesResponse {
         return try await withCheckedThrowingContinuation { continuation in
-            listShippingAddress { result in
+            listShippingAddress(shouldRetryOnAuthError: shouldRetryOnAuthError) { result in
                 switch result {
                 case .success(let response):
                     continuation.resume(returning: response)
@@ -355,16 +401,20 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
     }
 
     func listShippingAddress(
+        shouldRetryOnAuthError: Bool = true,
         completion: @escaping (Result<ShippingAddressesResponse, Error>) -> Void
     ) {
-        retryingOnAuthError(completion: completion) { completionRetryingOnAuthErrors in
+        retryingOnAuthError(
+            shouldRetry: shouldRetryOnAuthError,
+            completion: completion
+        ) { completionRetryingOnAuthErrors in
             guard let session = self.currentSession else {
                 stpAssertionFailure()
                 completion(.failure(PaymentSheetError.unknown(debugDescription: "Paying with Link without valid session")))
                 return
             }
 
-            session.listShippingAddress(with: self.apiClient, consumerAccountPublishableKey: self.publishableKey, completion: completionRetryingOnAuthErrors)
+            session.listShippingAddress(with: self.apiClient, consumerAccountPublishableKey: self.publishableKey, requestSurface: self.requestSurface, completion: completionRetryingOnAuthErrors)
         }
     }
 
@@ -385,6 +435,7 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
                 with: self.apiClient,
                 id: id,
                 consumerAccountPublishableKey: self.publishableKey,
+                requestSurface: self.requestSurface,
                 completion: completionRetryingOnAuthErrors
             )
         }
@@ -412,6 +463,7 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
                 id: id,
                 updateParams: updateParams,
                 consumerAccountPublishableKey: publishableKey,
+                requestSurface: self.requestSurface,
                 completion: completionRetryingOnAuthErrors
             )
         }
@@ -423,6 +475,7 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
         allowRedisplay: STPPaymentMethodAllowRedisplay?,
         expectedPaymentMethodType: String?,
         billingPhoneNumber: String?,
+        clientAttributionMetadata: STPClientAttributionMetadata,
         completion: @escaping (Result<PaymentDetailsShareResponse, Error>
     ) -> Void) {
         retryingOnAuthError(completion: completion) { [apiClient, publishableKey] completionRetryingOnAuthErrors in
@@ -443,6 +496,8 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
                 expectedPaymentMethodType: expectedPaymentMethodType,
                 billingPhoneNumber: billingPhoneNumber,
                 consumerAccountPublishableKey: publishableKey,
+                clientAttributionMetadata: clientAttributionMetadata,
+                requestSurface: self.requestSurface,
                 completion: completionRetryingOnAuthErrors
             )
         }
@@ -452,7 +507,7 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
         guard let session = currentSession else {
             return
         }
-        session.logout(with: apiClient, consumerAccountPublishableKey: publishableKey) { _ in
+        session.logout(with: apiClient, consumerAccountPublishableKey: publishableKey, requestSurface: requestSurface) { _ in
             // We don't need to do anything if this fails, the key will expire automatically.
         }
     }
@@ -471,7 +526,7 @@ class PaymentSheetLinkAccount: PaymentSheetLinkAccountInfoProtocol {
 
 extension PaymentSheetLinkAccount: Equatable {
 
-    static func == (lhs: PaymentSheetLinkAccount, rhs: PaymentSheetLinkAccount) -> Bool {
+    @_spi(STP) public static func == (lhs: PaymentSheetLinkAccount, rhs: PaymentSheetLinkAccount) -> Bool {
         return
             (lhs.email == rhs.email && lhs.currentSession == rhs.currentSession
             && lhs.publishableKey == rhs.publishableKey)
@@ -488,6 +543,7 @@ private extension PaymentSheetLinkAccount {
     /// Attempts attempts a request using apiCall. If the session
     /// is invalid, refresh it and re-attempt the apiCall.
     func retryingOnAuthError<T>(
+        shouldRetry: Bool = true,
         completion: @escaping CompletionBlock<T>,
         apiCall: @escaping (@escaping CompletionBlock<T>) -> Void
     ) {
@@ -496,16 +552,7 @@ private extension PaymentSheetLinkAccount {
             case .success:
                 completion(result)
             case .failure(let error as NSError):
-                let isAuthError: Bool = {
-                    if let stripeError = error as? StripeError,
-                    case let .apiError(stripeAPIError) = stripeError,
-                       stripeAPIError.code == "consumer_session_credentials_invalid" {
-                        return true
-                    }
-                    return false
-                }()
-
-                if isAuthError {
+                if error.isLinkAuthError && shouldRetry && self?.createdFromAuthIntentID != true {
                     self?.refreshSession { refreshSessionResult in
                         switch refreshSessionResult {
                         case .success(let refreshedSession):
@@ -663,7 +710,9 @@ struct UpdatePaymentDetailsParams {
             billingDetails: STPPaymentMethodBillingDetails? = nil,
             preferredNetwork: String? = nil
         )
-        // updating bank not supported
+        case bankAccount(
+            billingDetails: STPPaymentMethodBillingDetails
+        )
     }
 
     let isDefault: Bool?

@@ -1,5 +1,3 @@
-"%1$@ •••• %2$@" = "%1$@ •••• %2$@";
-
 "+ Add" = "+ Dodaj";
 
 "Add US bank account" = "Dodaj bankovni račun u SAD-u";
@@ -60,11 +58,19 @@
 
 "By continuing, you agree to authorize payments pursuant to <terms>these terms</terms>." = "Ako nastavite, pristajete na autorizaciju plaćanja u skladu s <terms>ovim uvjetima</terms>.";
 
+"By continuing, you agree to save your information for future purchases with %@ and <link>Link</link> according to Link <terms>terms</terms> and <privacy>privacy</privacy>." = "Nastavkom pristajete spremiti svoje podatke za buduće kupnje uz %@ i <link>Link</link> prema <terms>uvjetima</terms> i <privacy>privatnosti</privacy> značajke Link.";
+
+"By continuing, you agree to save your information for future purchases with %@." = "Nastavkom pristajete spremiti svoje podatke za buduće kupnje uz %@.";
+
+"By continuing, you authorize %@ to automatically debit your Satispay Balance on a recurring basis in accordance with your purchase or subscription plan." = "Nastavkom ovlašćujete da %@ automatski tereti vaš saldo Satispay na ponavljajućoj osnovi u skladu s vašim planom kupnje ili pretplate.";
+
 "By continuing, you authorize %@ to debit your Cash App account for this payment and future payments in accordance with %@'s terms, until this authorization is revoked. You can change this anytime in your Cash App Settings." = "Ako nastavite, autorizirate %1$@ da tereti vaš račun Cash App za ovo plaćanje i buduća plaćanja u skladu s uvjetima poduzeća %2$@, dok se ova autorizacija ne opozove. Ovo možete promijeniti bilo kada u postavkama aplikacije Cash App.";
 
 "By joining Link, you agree to the <terms>Terms</terms> and <privacy>Privacy Policy</privacy>." = "Prisupanjem u Link, prihvaćate <terms>Uvjete</terms> i <privacy>Pravila privatnosti</privacy>.";
 
 "By providing phone number and email, you agree to create a Link account subject to the Link <terms>Terms</terms> and <privacy>Privacy Policy</privacy>." = "Davanjem telefonskog broja i e-pošte pristajete na stvaranje Link računa u skladu s Link <terms>Uvjetima</terms> i <privacy>Pravilima o privatnosti</privacy>.";
+
+"By providing your bank account details and confirming this payment, you agree to this Direct Debit Request and the <terms>Direct Debit Request service agreement</terms>, and authorise Stripe Payments Australia Pty Ltd ACN 160 180 343 Direct Debit User ID number 507156 (“Stripe”) to debit your account through the Bulk Electronic Clearing System (BECS) on behalf of %@ (the \"Merchant\") for any amounts separately communicated to you by the Merchant. You certify that you are either an account holder or an authorised signatory on the account listed above." = "Davanjem podataka o svom bankovnom računu i potvrdom ove uplate pristajete na ovaj zahtjev za izravno terećenje i <terms>ugovor o usluzi zahtjeva za izravno terećenje</terms> i ovlašćujete Stripe Payments Australia Pty Ltd ACN 160 180 343, korisnički ID broj 507156 („Stripe”) da tereti vaš račun putem Bulk Electronic Clearing System (BECS) u ime %@ („Trgovac”) za sve iznose koje vam je Trgovac zasebno priopćio. Potvrđujete da ste vlasnik računa ili ovlašteni potpisnik na gore navedenom računu.";
 
 "By providing your card information, you allow %@ to charge your card for future payments in accordance with their terms." = "Davanjem podataka o kartici dopuštate poduzeću %@ da tereti vašu karticu za buduća plaćanja u skladu sa svojim uvjetima.";
 
@@ -75,6 +81,8 @@
 "By providing your phone number, you agree to create a Link account and save your payment info to Link, according to the Link <terms>Terms</terms> and <privacy>Privacy Policy</privacy>." = "Navođenjem svog telefonskog broja pristajete na izradu Link računa i spremanje podataka o plaćanju na Link, u skladu s <terms>Uvjetima</terms> i <privacy>Pravilima o privatnosti</privacy> Linka.";
 
 "By saving your bank account for %@ you agree to authorize payments pursuant to <terms>these terms</terms>." = "Spremanjem bankovnog računa za %@ pristajete na autorizaciju plaćanja u skladu s <terms>ovim uvjetima</terms>.";
+
+"By submitting your order to %@ you agree to authorize payments pursuant to <terms>these terms</terms>." = "Podnošenjem narudžbe za %@ pristajete na odobravanje plaćanja kojim ćete se pridržavati <terms>ovih uvjeta</terms>.";
 
 "CPF/CPNJ" = "CPF/CPNJ";
 
@@ -106,6 +114,8 @@
 
 "Continue another way" = "Nastavite na drugi način";
 
+"Create an account with Link for faster checkout across the web" = "Stvaranje računa s pomoću Linka za brže izvršenje plaćanja na mreži";
+
 "Debit or credit card" = "Debitna ili kreditna kartica";
 
 "Default" = "Zadano";
@@ -116,13 +126,13 @@
 
 "Enter address manually" = "Unesite adresu ručno";
 
-"Enter the code sent to %@ to use your saved information." = "Unesite kôd poslan na %@ za korištenje vaših spremljenih podataka.";
+"Enter the code sent to %@." = "Unesite kôd poslan na %s.";
 
 "FPX Bank" = "FPX Bank";
 
 "Failed to connect" = "Povezivanje nije uspjelo";
 
-"Fast, secure, 1⁠-⁠click checkout" = "Brzo i sigurno plaćanje jednim klikom";
+"Fast, secure checkout" = "Brzo i sigurno izvršenje plaćanja";
 
 "For security, please re-enter your card’s security code." = "Radi sigurnosti, ponovno unesite sigurnosni kod vaše kartice.";
 
@@ -184,6 +194,8 @@
 
 "Pay faster at %@ and thousands of businesses." = "Platite brže na %@ i tisućama drugih stranica.";
 
+"Pay faster everywhere Link is accepted." = "Plaćajte brže svugdje gdje je Link prihvaćen.";
+
 "Pay over time with %@" = "Platite u ratama koristeći %@";
 
 "Pay over time with Affirm" = "Platite u ratama pomoću Affirma";
@@ -234,8 +246,6 @@
 
 "Save your info for secure 1-click checkout with Link" = "Spremite svoje podatke za sigurno plaćanje jednim klikom putem Linka";
 
-"Save your payment information with Link, and securely check out in 1-click on Link-supported sites." = "Spremite svoje podatke o plaćanju pomoću Linka i sigurno platite jednim klikom na stranicama koje podržavaju Link.";
-
 "Saved" = "Spremljeno";
 
 "Select card" = "Odaberite karticu";
@@ -256,6 +266,8 @@
 
 "Simple, secure one-click payments" = "Jednostavna sigurna plaćanja jednim klikom";
 
+"Something went wrong when linking your account.\nPlease try again later." = "Nešto je pošlo po zlu prilikom povezivanja vašeg računa.\nPokušajte ponovno kasnije.";
+
 "Stripe will deposit $0.01 to your account in 1-2 business days. Then you'll get an email with instructions to finish saving your bank account with %@." = "Stripe će uplatiti polog u iznosu od 0,01 USD na vaš račun u roku od 1-2 radna dana. Zatim ćete zaprimiti poruku e-pošte s uputama za dovršetak spremanja svog bankovnog računa kod %@.";
 
 "Stripe will deposit $0.01 to your account in 1-2 business days. Then you’ll get an email with instructions to complete payment to %@." = "Stripe će uplatiti polog u iznosu od 0,01 USD na vaš račun u roku od 1-2 radna dana. Zatim ćete zaprimiti poruku e-pošte s uputama za dovršetak plaćanja za %@.";
@@ -266,6 +278,8 @@
 
 "The IBAN you entered is incomplete." = "Uneseni IBAN nije potpun.";
 
+"The IBAN you entered is invalid, \"%@\" is not a supported country code." = "IBAN koji ste unijeli nije valjan, „%@” nije podržani pozivni broj države.";
+
 "The provided verification code has expired." = "Navedeni kontrolni kôd je istekao.";
 
 "The provided verification code is incorrect." = "Navedeni kontrolni kôd nije točan.";
@@ -273,6 +287,8 @@
 "This card has expired. Update your card info or choose a different payment method." = "Ova kartica je istekla. Ažurirajte svoje podatke o kartici ili odaberite drugi način plaćanja.";
 
 "This is your default" = "Ovo je vaša zadana vrijednost";
+
+"This payment method will be removed but will remain available for %@ subscriptions." = "Ovaj način plaćanja bit će uklonjen, ali će ostati dostupan za pretplate %@.";
 
 "Too many attempts. Please try again in a few minutes." = "Previše pokušaja. Pokušajte ponovno za nekoliko minuta.";
 
@@ -282,7 +298,7 @@
 
 "Update payment method" = "Ažurirajte način plaćanja";
 
-"Use your saved info to check out faster" = "Upotrijebite svoje spremljene podatke za brže plaćanje";
+"Use billing address for shipping" = "Upotrijebite adresu naplate za dostavu";
 
 "View more" = "Vidi više";
 

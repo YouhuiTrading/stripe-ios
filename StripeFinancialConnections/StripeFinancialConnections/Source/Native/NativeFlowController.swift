@@ -42,7 +42,7 @@ class NativeFlowController {
             action: #selector(didSelectNavigationBarCloseButton)
         )
         item.tintColor = FinancialConnectionsAppearance.Colors.icon
-        item.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 5)
+        item.applyFinancialConnectionsCloseButtonEdgeInsets()
         return item
     }()
 
@@ -553,14 +553,16 @@ extension NativeFlowController {
                     paymentDetailsId: response.redactedPaymentDetails.id,
                     expectedPaymentMethodType: linkMode.expectedPaymentMethodType,
                     billingEmail: email,
-                    billingPhone: phone
+                    billingPhone: phone,
+                    allowRedisplay: elementsSessionContext?.allowRedisplay
                 )
                 .transformed { $0.paymentMethod }
             } else {
                 return self.dataManager.apiClient.paymentMethods(
                     consumerSessionClientSecret: consumerSession.clientSecret,
                     paymentDetailsId: response.redactedPaymentDetails.id,
-                    billingDetails: elementsSessionContext?.billingDetails
+                    billingDetails: elementsSessionContext?.billingDetails,
+                    allowRedisplay: elementsSessionContext?.allowRedisplay
                 )
             }
         }

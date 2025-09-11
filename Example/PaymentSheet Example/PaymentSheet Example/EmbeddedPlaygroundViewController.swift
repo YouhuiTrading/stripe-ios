@@ -8,6 +8,7 @@
 import Combine
 import Foundation
 @_spi(STP) @_spi(ExperimentalAllowsRemovalOfLastSavedPaymentMethodAPI) import StripePaymentSheet
+@_spi(STP) import StripeUICore
 import SwiftUI
 import UIKit
 
@@ -117,13 +118,17 @@ class EmbeddedPlaygroundViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         observePlaygroundController()
-        self.view.backgroundColor = UIColor(dynamicProvider: { traitCollection in
-            if traitCollection.userInterfaceStyle == .dark {
-                return .secondarySystemBackground
-            }
-
-            return .systemBackground
-        })
+        if LiquidGlassDetector.isEnabled {
+            let appearace = PaymentSheet.Appearance()
+            self.view.backgroundColor = appearace.colors.background
+        } else {
+            self.view.backgroundColor = UIColor(dynamicProvider: { traitCollection in
+                if traitCollection.userInterfaceStyle == .dark {
+                    return .secondarySystemBackground
+                }
+                return .systemBackground
+            })
+        }
 
         setupLoadingIndicator()
         loadingIndicator.startAnimating()
@@ -132,9 +137,10 @@ class EmbeddedPlaygroundViewController: UIViewController {
             do {
                 try await setupUI()
             } catch {
+                let paymentSheetError = error as? PaymentSheetError
                 let alert = UIAlertController(
                     title: "Error loading Embedded Payment Element",
-                    message: error.localizedDescription,
+                    message: paymentSheetError?.debugDescription ?? error.localizedDescription,
                     preferredStyle: .alert
                 )
                 alert.addAction(UIAlertAction(title: "OK", style: .default))

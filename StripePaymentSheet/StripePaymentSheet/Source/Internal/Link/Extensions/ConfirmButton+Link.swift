@@ -8,22 +8,50 @@
 
 import UIKit
 
+@_spi(STP) import StripeUICore
+
 extension ConfirmButton {
 
     static func makeLinkButton(
         callToAction: CallToActionType,
+        showProcessingLabel: Bool,
         compact: Bool = false,
+        linkAppearance: LinkAppearance? = nil,
+        didTapWhenDisabled: @escaping () -> Void = {},
         didTap: @escaping () -> Void
     ) -> ConfirmButton {
-        let directionalLayoutMargins = compact ? LinkUI.compactButtonMargins : LinkUI.buttonMargins
+        var directionalLayoutMargins = compact ? LinkUI.compactButtonMargins : LinkUI.buttonMargins
 
         var appearance = LinkUI.appearance
+
+        if let linkAppearance {
+            if let colors = linkAppearance.colors {
+                appearance.primaryButton.backgroundColor = colors.primary
+            }
+
+            if let buttonConfiguration = linkAppearance.primaryButton {
+                appearance.primaryButton.cornerRadius = buttonConfiguration.cornerRadius
+
+                // Adjust the margins to back solve for the `LinkAppearance` customized height.
+                let desiredHeight = buttonConfiguration.height
+                let verticalMargin = LinkUI.verticalMarginForPrimaryButton(withDesiredHeight: desiredHeight)
+                directionalLayoutMargins.top = verticalMargin
+                directionalLayoutMargins.bottom = verticalMargin
+            }
+        }
+
         appearance.primaryButton.height = LinkUI.primaryButtonHeight(margins: directionalLayoutMargins)
+
+        if LiquidGlassDetector.isEnabled {
+            appearance.primaryButton.cornerRadius = appearance.primaryButton.height / 2
+        }
 
         let button = ConfirmButton(
             callToAction: callToAction,
+            showProcessingLabel: showProcessingLabel,
             appearance: appearance,
-            didTap: didTap
+            didTap: didTap,
+            didTapWhenDisabled: didTapWhenDisabled
         )
 
         button.directionalLayoutMargins = directionalLayoutMargins

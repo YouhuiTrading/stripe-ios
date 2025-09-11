@@ -54,6 +54,11 @@ final class PayWithNativeLinkController {
     let configuration: PaymentElementConfiguration
     let logPayment: Bool
     let analyticsHelper: PaymentSheetAnalyticsHelper
+    let supportedPaymentMethodTypes: [LinkPaymentMethodType]
+
+    private let linkAppearance: LinkAppearance?
+    private let linkConfiguration: LinkConfiguration?
+    private let hcaptchaToken: String?
 
     init(
         mode: Mode,
@@ -61,7 +66,11 @@ final class PayWithNativeLinkController {
         elementsSession: STPElementsSession,
         configuration: PaymentElementConfiguration,
         logPayment: Bool = true,
-        analyticsHelper: PaymentSheetAnalyticsHelper
+        analyticsHelper: PaymentSheetAnalyticsHelper,
+        supportedPaymentMethodTypes: [LinkPaymentMethodType] = LinkPaymentMethodType.allCases,
+        linkAppearance: LinkAppearance? = nil,
+        linkConfiguration: LinkConfiguration? = nil,
+        hcaptchaToken: String? = nil
     ) {
         self.mode = mode
         self.intent = intent
@@ -69,7 +78,11 @@ final class PayWithNativeLinkController {
         self.elementsSession = elementsSession
         self.configuration = configuration
         self.analyticsHelper = analyticsHelper
+        self.supportedPaymentMethodTypes = supportedPaymentMethodTypes
         self.paymentHandler = .init(apiClient: configuration.apiClient)
+        self.linkAppearance = linkAppearance
+        self.linkConfiguration = linkConfiguration
+        self.hcaptchaToken = hcaptchaToken
     }
 
     func presentAsBottomSheet(
@@ -83,7 +96,8 @@ final class PayWithNativeLinkController {
             from: presentingController,
             shouldOfferApplePay: shouldOfferApplePay,
             hidingUnderlyingBottomSheet: hidingUnderlyingBottomSheet,
-            shouldFinishOnClose: shouldFinishOnClose
+            shouldFinishOnClose: shouldFinishOnClose,
+            canSkipWalletAfterVerification: false // Only available for payment method selection
         ) { completionResult in
             guard case .full(let result, let deferredIntentConfirmationType, let didFinish) = completionResult else {
                 return
@@ -97,6 +111,7 @@ final class PayWithNativeLinkController {
         from presentingController: UIViewController,
         initiallySelectedPaymentDetailsID: String?,
         shouldShowSecondaryCta: Bool = true,
+        canSkipWalletAfterVerification: Bool,
         completion: @escaping (_ confirmOption: PaymentSheet.LinkConfirmOption?, _ shouldReturnToPaymentSheet: Bool) -> Void
     ) {
         presentAsBottomSheetInternal(
@@ -107,7 +122,8 @@ final class PayWithNativeLinkController {
             initiallySelectedPaymentDetailsID: initiallySelectedPaymentDetailsID,
             callToAction: .continue,
             shouldFinishOnClose: false,
-            shouldShowSecondaryCta: shouldShowSecondaryCta
+            shouldShowSecondaryCta: shouldShowSecondaryCta,
+            canSkipWalletAfterVerification: canSkipWalletAfterVerification
         ) { completionResult in
             guard case .paymentMethodSelection(let confirmOption, let shouldReturnToPaymentSheet) = completionResult else {
                 return
@@ -126,6 +142,7 @@ final class PayWithNativeLinkController {
         callToAction: ConfirmButton.CallToActionType? = nil,
         shouldFinishOnClose: Bool,
         shouldShowSecondaryCta: Bool = true,
+        canSkipWalletAfterVerification: Bool,
         completion: @escaping (CompletionResult) -> Void
     ) {
         self.selfRetainer = self
@@ -144,8 +161,12 @@ final class PayWithNativeLinkController {
                 shouldShowSecondaryCta: shouldShowSecondaryCta,
                 launchedFromFlowController: launchedFromFlowController,
                 initiallySelectedPaymentDetailsID: initiallySelectedPaymentDetailsID,
+                canSkipWalletAfterVerification: canSkipWalletAfterVerification,
                 callToAction: callToAction,
-                analyticsHelper: self.analyticsHelper
+                analyticsHelper: self.analyticsHelper,
+                supportedPaymentMethodTypes: self.supportedPaymentMethodTypes,
+                linkAppearance: self.linkAppearance,
+                linkConfiguration: self.linkConfiguration
             )
 
             payWithLinkVC.payWithLinkDelegate = self
@@ -206,6 +227,7 @@ extension PayWithNativeLinkController: PayWithLinkViewControllerDelegate {
             elementsSession: elementsSession,
             paymentOption: paymentOption,
             paymentHandler: paymentHandler,
+            hcaptchaToken: hcaptchaToken,
             analyticsHelper: analyticsHelper,
             completion: { result, confirmationType in
                 if self.logPayment {
@@ -261,6 +283,7 @@ extension PayWithNativeLinkController: PayWithLinkWebControllerDelegate {
             paymentOption: paymentOption,
             paymentHandler: paymentHandler,
             integrationShape: .complete,
+            hcaptchaToken: hcaptchaToken,
             analyticsHelper: analyticsHelper
         ) { result, deferredIntentConfirmationType in
             self.completion?(.full(result: result, deferredIntentConfirmationType: deferredIntentConfirmationType, didFinish: true))

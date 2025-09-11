@@ -1,3 +1,5 @@
+"%1$@ •••• %2$@" = "%1$@ •••• %2$@";
+
 "%@ (optional)" = "%@ (optional)";
 
 "(not accepted)" = "(nicht akzeptiert)";
@@ -104,6 +106,8 @@
 
 "Select card brand (optional)" = "Kartenmarke auswählen (optional)";
 
+"Selection is empty." = "Die Auswahl ist leer.";
+
 "Sort code" = "Bankleitzahl";
 
 "State" = "Bundesland";
@@ -132,12 +136,16 @@
 
 "Your BLIK code is invalid." = "Ihr BLIK code ist ungültig.";
 
-"Your ZIP is incomplete." = "PLZ ist unvollständig.";
+"Your ZIP code is incomplete." = "Ihre Postleitzahl ist unvollständig.";
+
+"Your ZIP code is invalid." = "Ihre Postleitzahl ist ungültig.";
 
 "Your email is invalid." = "Ihre E-Mail-Adresse ist ungültig.";
 
 "Your payment information will not be saved." = "Ihre Zahlungsinformationen werden nicht gespeichert.";
 
 "Your postal code is incomplete." = "Postleitzahl ist unvollständig.";
+
+"Your postal code is invalid." = "Postleitzahl ist ungültig";
 
 "ZIP" = "ZIP";

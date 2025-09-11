@@ -14,6 +14,7 @@ import UIKit
 @testable@_spi(STP) import StripePaymentSheet
 @testable@_spi(STP) import StripePaymentsUI
 
+// @iOS26
 class LinkInlineSignupElementSnapshotTests: STPSnapshotTestCase {
 
     // MARK: Normal mode
@@ -81,6 +82,14 @@ class LinkInlineSignupElementSnapshotTests: STPSnapshotTestCase {
         verify(sut)
     }
 
+    func testSignupOptInFeatureEnabled_unchecked() {
+        let sut = makeSUT(
+            linkAccountEmailAddress: "unknown@stripe.com",
+            signupOptInFeatureEnabled: true
+        )
+        verify(sut)
+    }
+
     // MARK: Textfield only mode
 
     func testDefaultState_textFieldsOnly() {
@@ -138,6 +147,7 @@ extension LinkInlineSignupElementSnapshotTests {
             withEmail email: String?,
             emailSource: StripePaymentSheet.EmailSource,
             doNotLogConsumerFunnelEvent: Bool,
+            requestSurface: StripePaymentSheet.LinkRequestSurface = .default,
             completion: @escaping (Result<PaymentSheetLinkAccount?, Error>) -> Void
         ) {
             completion(
@@ -146,10 +156,32 @@ extension LinkInlineSignupElementSnapshotTests {
                         email: "user@example.com",
                         session: nil,
                         publishableKey: nil,
-                        useMobileEndpoints: false
+                        displayablePaymentDetails: nil,
+                        useMobileEndpoints: false,
+                        requestSurface: requestSurface
                     )
                 )
             )
+        }
+
+        func lookupLinkAuthIntent(
+            linkAuthIntentID: String,
+            requestSurface: StripePaymentSheet.LinkRequestSurface = .default,
+            completion: @escaping (Result<StripePaymentSheet.LookupLinkAuthIntentResponse?, Error>) -> Void
+        ) {
+            let linkAccount = PaymentSheetLinkAccount(
+                email: "user@example.com",
+                session: nil,
+                publishableKey: nil,
+                displayablePaymentDetails: nil,
+                useMobileEndpoints: false,
+                requestSurface: requestSurface
+            )
+            let response = StripePaymentSheet.LookupLinkAuthIntentResponse(
+                linkAccount: linkAccount,
+                consentViewModel: nil
+            )
+            completion(.success(response))
         }
 
         func hasEmailLoggedOut(email: String) -> Bool {
@@ -166,7 +198,8 @@ extension LinkInlineSignupElementSnapshotTests {
         preFillName: String? = nil,
         preFillPhone: String? = nil,
         showCheckbox: Bool = true,
-        allowsDefaultOptIn: Bool = false
+        allowsDefaultOptIn: Bool = false,
+        signupOptInFeatureEnabled: Bool = false
     ) -> LinkInlineSignupElement {
         var configuration = PaymentSheet.Configuration()
         configuration.merchantDisplayName = "[Merchant]"
@@ -176,7 +209,13 @@ extension LinkInlineSignupElementSnapshotTests {
         var linkAccount: PaymentSheetLinkAccount?
 
         if let linkAccountEmailAddress {
-            linkAccount = PaymentSheetLinkAccount(email: linkAccountEmailAddress, session: nil, publishableKey: nil, useMobileEndpoints: false)
+            linkAccount = PaymentSheetLinkAccount(
+                email: linkAccountEmailAddress,
+                session: nil,
+                publishableKey: nil,
+                displayablePaymentDetails: nil,
+                useMobileEndpoints: false
+            )
         }
 
         let viewModel = LinkInlineSignupViewModel(
@@ -184,6 +223,8 @@ extension LinkInlineSignupElementSnapshotTests {
             showCheckbox: showCheckbox,
             accountService: MockAccountService(),
             allowsDefaultOptIn: allowsDefaultOptIn,
+            signupOptInFeatureEnabled: signupOptInFeatureEnabled,
+            signupOptInInitialValue: false,
             linkAccount: linkAccount,
             country: country
         )
