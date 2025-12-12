@@ -16,8 +16,6 @@
 
 "Add your payment information" = "Add your payment information";
 
-"Agree and continue" = "Agree and continue";
-
 "Approve payment" = "Approve payment";
 
 "Are you sure you want to remove this card?" = "Are you sure you want to remove this card?";
@@ -82,6 +80,8 @@
 
 "By saving your bank account for %@ you agree to authorize payments pursuant to <terms>these terms</terms>." = "By saving your bank account for %@ you agree to authorize payments pursuant to <terms>these terms</terms>.";
 
+"By submitting your order to %@ and %@, you agree to save your information with %@ for future purchases, and agree to authorize payments pursuant to <terms>these terms</terms>." = "By submitting your order to %1$@ and %2$@, you agree to save your information with %3$@ for future purchases and agree to authorise payments pursuant to <terms>these terms</terms>.";
+
 "By submitting your order to %@ you agree to authorize payments pursuant to <terms>these terms</terms>." = "By submitting your order to %@ you agree to authorise payments pursuant to <terms>these terms</terms>.";
 
 "CPF/CPNJ" = "CPF/CPNJ";
@@ -100,8 +100,6 @@
 
 "Confirm" = "Confirm";
 
-"Confirm it's you" = "Confirm it's you";
-
 "Confirm payment details" = "Confirm payment details";
 
 "Confirm the payment in your bank or payment app within %@ to complete the purchase." = "Confirm the payment in your bank or payment app within %@ to complete the purchase.";
@@ -109,6 +107,8 @@
 "Confirm the payment in your bank's app within %@ to complete the purchase." = "Confirm the payment in your bank's app within %@ to complete the purchase.";
 
 "Confirm your CVC" = "Confirm your CVC";
+
+"Confirm your information" = "Confirm your information";
 
 "Contact information" = "Contact information";
 
@@ -122,19 +122,15 @@
 
 "Default payment method" = "Default payment method";
 
+"Did you mean %@? %@." = "Did you mean %1$@? %2$@.";
+
 "EPS Bank" = "EPS Bank";
 
 "Enter address manually" = "Enter address manually";
 
-"Enter the code sent to %@." = "Enter the code sent to %s.";
-
 "FPX Bank" = "FPX Bank";
 
-"Failed to connect" = "Failed to connect";
-
 "Fast, secure checkout" = "Fast, secure checkout";
-
-"For security, please re-enter your card’s security code." = "For security, please re-enter your card’s security code.";
 
 "Get %@ back when you pay for the first time with your bank. <terms>See terms</terms>" = "Get %@ back when you pay for the first time with your bank. <terms>See terms</terms>";
 
@@ -143,6 +139,8 @@
 "I understand that Stripe will be collecting Direct Debits on behalf of %@ and confirm that I am the account holder and the only person required to authorise debits from this account." = "I understand that Stripe will be collecting Direct Debits on behalf of %@ and confirm that I am the account holder and the only person required to authorise debits from this account.";
 
 "IBAN" = "IBAN";
+
+"Last 4 digits of SSN" = "Last 4 digits of SSN";
 
 "Log in or sign up" = "Log in or sign up";
 
@@ -224,8 +222,6 @@
 
 "Remove linked account" = "Remove linked account";
 
-"Resend code" = "Resend code";
-
 "SEPA debit details cannot be changed." = "SEPA debit details cannot be changed.";
 
 "Save" = "Save";
@@ -284,8 +280,6 @@
 
 "The provided verification code is incorrect." = "The provided verification code is incorrect.";
 
-"This card has expired. Update your card info or choose a different payment method." = "This card has expired. Update your card info or choose a different payment method.";
-
 "This is your default" = "This is your default";
 
 "This payment method will be removed but will remain available for %@ subscriptions." = "This payment method will be removed but will remain available for %@ subscriptions.";
@@ -301,6 +295,8 @@
 "Use billing address for shipping" = "Use billing address for shipping";
 
 "View more" = "View more";
+
+"Yes, update" = "Yes, update";
 
 "Your IBAN should start with a two-letter country code." = "Your IBAN should start with a two-letter country code.";
 

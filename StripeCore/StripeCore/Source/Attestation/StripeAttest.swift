@@ -19,7 +19,7 @@ import UIKit
     /// Sign an assertion.
     /// Will create and attest a new device key if needed.
     /// Returns an AssertionHandle, which must be called after the network request completes (with success or failure) in order to unblock future assertions.
-    @_spi(STP) public func assert() async throws -> AssertionHandle {
+    @_spi(STP) public func assert(canSyncState: Bool) async throws -> AssertionHandle {
         // Make sure we only process one assertion at a time, until the latest
         if assertionInProgress {
             try await withCheckedThrowingContinuation { continuation in
@@ -29,7 +29,7 @@ import UIKit
         assertionInProgress = true
 
         do {
-            let assertion = try await _assert()
+            let assertion = try await _assert(canSyncState: canSyncState)
             let successAnalytic = GenericAnalytic(event: .assertionSucceeded, params: [:])
             if let apiClient {
                 STPAnalyticsClient.sharedClient.log(analytic: successAnalytic, apiClient: apiClient)
@@ -235,6 +235,8 @@ import UIKit
         defer { attestationTask = nil } // Clear the task after it's done
         do {
             try await task.value
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
             let errorAnalytic = ErrorAnalytic(event: .attestationFailed, error: error)
             if let apiClient {
@@ -244,11 +246,12 @@ import UIKit
         }
     }
     private var attestationTask: Task<Void, Error>?
+    private var keyGenerationTask: Task<String, Error>?
 
     private var assertionInProgress: Bool = false
     private var assertionWaiters: [CheckedContinuation<Void, Error>] = []
 
-    func _assert() async throws -> Assertion {
+    func _assert(canSyncState: Bool, isRetry: Bool = false) async throws -> Assertion {
         let keyId = try await self.getOrCreateKeyID()
 
         if !successfullyAttested {
@@ -258,12 +261,29 @@ import UIKit
 
         let challenge = try await getChallenge()
 
-        // If the backend claims that attestation is required, but we already have an attested key,
-        // something has gone wrong.
-        if challenge.initial_attestation_required {
-            // Reset the key, we'll try again next time:
-            resetKey()
-            throw AttestationError.shouldAttestButKeyIsAlreadyAttested
+        // State alignment: sync client state with server
+        if canSyncState && !challenge.initial_attestation_required && !successfullyAttested {
+            // Server has attestation but client doesn't know - update client
+            successfullyAttested = true
+            let event = GenericAnalytic(event: .stateMismatchNotAttestedLocally, params: [:])
+            if let apiClient {
+                STPAnalyticsClient.sharedClient.log(analytic: event, apiClient: apiClient)
+            }
+        } else if challenge.initial_attestation_required && successfullyAttested {
+            // Server needs attestation but client thinks it's done - reset client and retry
+            if isRetry || !canSyncState {
+                // We already tried once - something is wrong
+                resetKey()
+                throw AttestationError.shouldAttestButKeyIsAlreadyAttested
+            } else {
+                // Reset and retry
+                resetKey()
+                let event = GenericAnalytic(event: .stateMismatchNotAttestedRemotely, params: [:])
+                if let apiClient {
+                    STPAnalyticsClient.sharedClient.log(analytic: event, apiClient: apiClient)
+                }
+                return try await _assert(canSyncState: canSyncState, isRetry: true)
+            }
         }
 
         let deviceId = try await getDeviceID()
@@ -274,6 +294,9 @@ import UIKit
     }
 
     func _attest() async throws {
+        // Check at entry point
+        try Task.checkCancellation()
+
         // It's dangerous to attest, as it increments a permanent counter for the device.
         // Check if we've reached the daily limit of attempts.
         let now = Date()
@@ -313,6 +336,9 @@ import UIKit
 
         let deviceId = try await getDeviceID()
         let appId = try getAppID()
+
+        // Check before expensive operation
+        try Task.checkCancellation()
 
         do {
             let attestation = try await appAttestService.attestKey(keyId, clientDataHash: hash)
@@ -354,8 +380,18 @@ import UIKit
         if let keyId = storedKeyID {
             return keyId
         }
+        // Check if another task is already generating a key
+        if let existingTask = keyGenerationTask {
+            return try await existingTask.value
+        }
         // If we don't have a key, generate one.
-        return try await self.createKey()
+        let task = Task<String, Error> {
+            try await createKey()
+        }
+        keyGenerationTask = task
+        defer { keyGenerationTask = nil }
+
+        return try await task.value
     }
 
     @_spi(STP) public func resetKey() {
@@ -425,6 +461,10 @@ import UIKit
             // For other errors, we'll want to retry attestation later with the same key.
             throw error
         }
+    }
+
+    public func cancel() {
+        attestationTask?.cancel()
     }
 
     // MARK: Assertion concurrency

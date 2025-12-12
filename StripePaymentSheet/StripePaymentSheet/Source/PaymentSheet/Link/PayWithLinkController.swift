@@ -26,16 +26,15 @@ final class PayWithLinkController {
     let elementsSession: STPElementsSession
     let configuration: PaymentElementConfiguration
     let analyticsHelper: PaymentSheetAnalyticsHelper
+    private let confirmationChallenge: ConfirmationChallenge?
 
-    private let hcaptchaToken: String?
-
-    init(intent: Intent, elementsSession: STPElementsSession, configuration: PaymentElementConfiguration, analyticsHelper: PaymentSheetAnalyticsHelper, hcaptchaToken: String?) {
+    init(intent: Intent, elementsSession: STPElementsSession, configuration: PaymentElementConfiguration, analyticsHelper: PaymentSheetAnalyticsHelper, confirmationChallenge: ConfirmationChallenge?) {
         self.intent = intent
         self.elementsSession = elementsSession
         self.configuration = configuration
         self.paymentHandler = .init(apiClient: configuration.apiClient)
         self.analyticsHelper = analyticsHelper
-        self.hcaptchaToken = hcaptchaToken
+        self.confirmationChallenge = confirmationChallenge
     }
 
     func present(
@@ -70,7 +69,7 @@ extension PayWithLinkController: PayWithLinkWebControllerDelegate {
             paymentOption: paymentOption,
             paymentHandler: paymentHandler,
             integrationShape: .complete,
-            hcaptchaToken: hcaptchaToken,
+            confirmationChallenge: confirmationChallenge,
             analyticsHelper: analyticsHelper
         ) { result, deferredIntentConfirmationType in
             self.completion?(result, deferredIntentConfirmationType)

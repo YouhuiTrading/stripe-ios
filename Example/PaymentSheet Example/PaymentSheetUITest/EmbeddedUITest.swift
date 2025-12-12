@@ -20,13 +20,13 @@ class EmbeddedUITests: PaymentSheetUITestCase {
 
         let cardButton = app.buttons["Card"]
         XCTAssertTrue(cardButton.waitForExistence(timeout: 10))
-        // filter out async passive captcha logs
+        // filter out async passive captcha and attestation logs
         let startupLog = analyticsLog.compactMap({ $0[string: "event"] })
-            .filter({ !$0.starts(with: "luxe") }).filter({ !$0.starts(with: "elements.captcha.passive") })
+            .filter({ !$0.starts(with: "luxe") }).filter({ !$0.starts(with: "elements.captcha.passive") && !($0.contains("attest")) })
         XCTAssertEqual(
             startupLog,
             // fraud detection telemetry should not be sent in tests, so it should report an API failure
-            ["mc_load_started", "link.account_lookup.complete", "mc_load_succeeded", "fraud_detection_data_repository.api_failure", "mc_embedded_init", "mc_lpms_render"]
+            ["mc_load_started", "link.account_lookup.complete", "mc_load_succeeded", "fraud_detection_data_repository.api_failure", "mc_embedded_init", "mc_initial_displayed_payment_methods"]
         )
 
         // Entering a card w/ deferred PaymentIntent...
@@ -40,10 +40,10 @@ class EmbeddedUITests: PaymentSheetUITestCase {
         XCTAssertEqual(app.staticTexts["Payment method"].label, "•••• 4242")
 
         let fillCardAnalytics = analyticsLog.compactMap({ $0[string: "event"] })
-            .suffix(5)
+            .suffix(6)
         XCTAssertEqual(
             fillCardAnalytics,
-            ["mc_form_shown", "mc_form_interacted", "mc_card_number_completed", "mc_form_completed", "mc_confirm_button_tapped"]
+            ["mc_form_shown", "link.inline_signup.shown", "mc_form_interacted", "mc_card_number_completed", "mc_form_completed", "mc_confirm_button_tapped"]
         )
 
         // ...and *updating* to a SetupIntent...
@@ -84,7 +84,7 @@ class EmbeddedUITests: PaymentSheetUITestCase {
         XCTAssertEqual(
             aliPayAnalytics,
             // fraud detection telemetry should not be sent in tests, so it should report an API failure
-            ["mc_embedded_update_started", "mc_load_started", "link.account_lookup.complete", "mc_load_succeeded", "fraud_detection_data_repository.api_failure", "mc_lpms_render", "mc_embedded_update_finished", "mc_carousel_payment_method_tapped"]
+            ["mc_embedded_update_started", "mc_load_started", "link.account_lookup.complete", "mc_load_succeeded", "fraud_detection_data_repository.api_failure", "mc_initial_displayed_payment_methods", "mc_embedded_update_finished", "mc_carousel_payment_method_tapped"]
         )
 
         // ...and *updating* to a SetupIntent...
@@ -138,7 +138,7 @@ class EmbeddedUITests: PaymentSheetUITestCase {
         XCTAssertEqual(
             klarnaAnalytics,
             // fraud detection telemetry should not be sent in tests, so it should report an API failure
-            ["mc_embedded_update_started", "mc_load_started", "link.account_lookup.complete", "mc_load_succeeded", "fraud_detection_data_repository.api_failure", "mc_lpms_render", "mc_embedded_update_finished", "mc_carousel_payment_method_tapped", "mc_form_shown", "mc_form_completed", "mc_confirm_button_tapped"]
+            ["mc_embedded_update_started", "mc_load_started", "link.account_lookup.complete", "mc_load_succeeded", "fraud_detection_data_repository.api_failure", "mc_initial_displayed_payment_methods", "mc_embedded_update_finished", "mc_carousel_payment_method_tapped", "mc_form_shown", "mc_form_completed", "mc_confirm_button_tapped"]
         )
 
         // ...switching back to payment should keep Klarna selected
@@ -162,7 +162,8 @@ class EmbeddedUITests: PaymentSheetUITestCase {
         var settings = PaymentSheetTestPlaygroundSettings.defaultValues()
         settings.mode = .paymentWithSetup
         settings.uiStyle = .paymentSheet
-        settings.customerKeyType = .legacy
+        settings.customerKeyType = .customerSession
+        settings.confirmationMode = .confirmationToken
         settings.customerMode = .new
         settings.merchantCountryCode = .FR
         settings.currency = .eur
@@ -177,7 +178,7 @@ class EmbeddedUITests: PaymentSheetUITestCase {
             app,
             cardNumber: "4000002500001001",
             postalEnabled: true,
-            disableDefaultOptInIfNeeded: true
+            tapCheckboxWithText: "Save payment details to Example, Inc. for future purchases"
         )
 
         // Complete payment
@@ -275,7 +276,7 @@ class EmbeddedUITests: PaymentSheetUITestCase {
             .prefix(6)
         XCTAssertEqual(
             presentEmbeddedLog,
-            ["mc_load_started", "mc_load_succeeded", "mc_embedded_init", "mc_lpms_render", "mc_carousel_payment_method_tapped", "mc_form_shown"]
+            ["mc_load_started", "mc_load_succeeded", "mc_embedded_init", "mc_initial_displayed_payment_methods", "mc_carousel_payment_method_tapped", "mc_form_shown"]
         )
         // Complete payment
         app.buttons["Pay €50.99"].tap()
@@ -320,7 +321,7 @@ class EmbeddedUITests: PaymentSheetUITestCase {
         settings.mode = .paymentWithSetup
         settings.uiStyle = .embedded
         settings.integrationType = .deferred_csc
-        settings.customerKeyType = .legacy
+        settings.customerKeyType = .customerSession
         settings.customerMode = .returning
         settings.merchantCountryCode = .FR
         settings.currency = .eur
@@ -915,7 +916,8 @@ class EmbeddedUITests: PaymentSheetUITestCase {
         XCTAssertTrue(app.staticTexts["Success!"].waitForExistence(timeout: 10.0))
     }
 
-    func testUSBankAccount() {
+    // TODO(alexzhu): Enable after institutions are renamed (ir-rider-prefix)
+    func DISABLED_testUSBankAccount() {
         var settings = PaymentSheetTestPlaygroundSettings.defaultValues()
         settings.customerMode = .returning
         settings.mode = .payment
@@ -1035,6 +1037,8 @@ class EmbeddedUITests: PaymentSheetUITestCase {
 
     func testSwiftUI() throws {
         app.launch()
+
+        app.swipeUp() // scroll to make list item available on screen
         XCTAssertTrue(app.staticTexts["EmbeddedPaymentElement (SwiftUI)"].waitForExistenceAndTap())
 
         app.buttons["Card"].waitForExistenceAndTap(timeout: 10)

@@ -5,8 +5,7 @@
 //  Created by David Estes on 5/31/23.
 //
 
-@_spi(STP) import StripePaymentSheet
-@_spi(STP) import StripeUICore
+import StripePaymentSheet
 import SwiftUI
 
 @available(iOS 15.0, *)
@@ -14,6 +13,7 @@ struct PaymentSheetTestPlayground: View {
     @StateObject var playgroundController: PlaygroundController
     @StateObject var analyticsLogObserver: AnalyticsLogObserver = .shared
     @State var showingQRSheet = false
+    @State private var isViewReady = false
 
     init() {
         _playgroundController = StateObject(wrappedValue: PlaygroundController())
@@ -41,7 +41,8 @@ struct PaymentSheetTestPlayground: View {
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
         }
-        SettingView(setting: enableIos26Binding)
+        SettingView(setting: $playgroundController.settings.enablePassiveCaptcha)
+        SettingView(setting: $playgroundController.settings.enableAttestationOnConfirmation)
         Group {
             if playgroundController.settings.merchantCountryCode == .US {
                 SettingView(setting: linkEnabledModeBinding)
@@ -57,9 +58,11 @@ struct PaymentSheetTestPlayground: View {
         }
         SettingView(setting: $playgroundController.settings.preferredNetworksEnabled)
         SettingView(setting: $playgroundController.settings.cardBrandAcceptance)
+        SettingView(setting: $playgroundController.settings.cardFundingAcceptance)
         SettingView(setting: $playgroundController.settings.allowsRemovalOfLastSavedPaymentMethod)
         SettingView(setting: $playgroundController.settings.requireCVCRecollection)
         SettingView(setting: $playgroundController.settings.autoreload)
+        AttestationResetButtonView()
         SettingView(setting: $playgroundController.settings.shakeAmbiguousViews)
         SettingView(setting: $playgroundController.settings.instantDebitsIncentives)
         SettingView(setting: $playgroundController.settings.fcLiteEnabled)
@@ -68,9 +71,26 @@ struct PaymentSheetTestPlayground: View {
     }
 
     var body: some View {
-        VStack {
-            ScrollView {
+        if !isViewReady {
+            return AnyView(
                 VStack {
+                    ProgressView()
+                    Text("Loading playground...")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .onAppear {
+                    DispatchQueue.main.async {
+                        isViewReady = true
+                    }
+                }
+            )
+        }
+
+        return AnyView(VStack {
+            ScrollView {
+                LazyVStack {
                     Group {
                         HStack {
                             if ProcessInfo.processInfo.environment["UITesting"] != nil {
@@ -106,7 +126,11 @@ struct PaymentSheetTestPlayground: View {
                             setting: integrationTypeBinding,
                             disabledSettings: playgroundController.settings.uiStyle == .embedded ? [.normal] : []
                         )
-                        SettingView(setting: $playgroundController.settings.customerKeyType)
+                        // Only show confirmation mode for deferred integration types
+                        if playgroundController.settings.integrationType != .normal {
+                            SettingView(setting: confirmationModeBinding)
+                        }
+                        SettingView(setting: customerKeyTypeBinding)
                         SettingView(setting: customerModeBinding)
                         HStack {
                             SettingPickerView(setting: $playgroundController.settings.amount, customDisplayName: { amount in
@@ -204,8 +228,9 @@ struct PaymentSheetTestPlayground: View {
             Spacer()
             Divider()
             PaymentSheetButtons()
-                .environmentObject(playgroundController)
-        }.animationUnlessTesting()
+        }
+        .environmentObject(playgroundController)
+        .animationUnlessTesting())
     }
 
     var paymentMethodSaveBinding: Binding<PaymentSheetTestPlaygroundSettings.PaymentMethodSave> {
@@ -310,13 +335,30 @@ struct PaymentSheetTestPlayground: View {
             playgroundController.settings.integrationType = newIntegrationType
         }
     }
-    var enableIos26Binding: Binding<PaymentSheetTestPlaygroundSettings.EnableIOS26Changes> {
-        Binding<PaymentSheetTestPlaygroundSettings.EnableIOS26Changes> {
-            return playgroundController.settings.enableIOS26Changes
-        } set: { newValue in
-            LiquidGlassDetector.allowNewDesign = newValue == .on
-            playgroundController.appearance = PaymentSheet.Appearance()
-            playgroundController.settings.enableIOS26Changes = newValue
+
+    var confirmationModeBinding: Binding<PaymentSheetTestPlaygroundSettings.ConfirmationMode> {
+        Binding<PaymentSheetTestPlaygroundSettings.ConfirmationMode> {
+            return playgroundController.settings.confirmationMode
+        } set: { newMode in
+            // If switching to confirmation token mode and legacy (ephemeral key) is selected,
+            // automatically switch to customer session
+            if newMode == .confirmationToken && playgroundController.settings.customerKeyType == .legacy {
+                playgroundController.settings.customerKeyType = .customerSession
+            }
+            playgroundController.settings.confirmationMode = newMode
+        }
+    }
+
+    var customerKeyTypeBinding: Binding<PaymentSheetTestPlaygroundSettings.CustomerKeyType> {
+        Binding<PaymentSheetTestPlaygroundSettings.CustomerKeyType> {
+            return playgroundController.settings.customerKeyType
+        } set: { newType in
+            // If switching to legacy (ephemeral key) and confirmation token is selected,
+            // automatically switch to payment method mode
+            if newType == .legacy && playgroundController.settings.confirmationMode == .confirmationToken {
+                playgroundController.settings.confirmationMode = .paymentMethod
+            }
+            playgroundController.settings.customerKeyType = newType
         }
     }
 }
@@ -591,6 +633,23 @@ struct BillingDetailsView: View {
             if let country = billingDetails.address.country {
                 Text(country)
             }
+        }
+    }
+}
+
+struct AttestationResetButtonView: View {
+    @State private var presentingAlert = false
+    @EnvironmentObject var playgroundController: PlaygroundController
+
+    var body: some View {
+        if #available(iOS 15.0, *) {
+            Button {
+                playgroundController.didTapResetAttestation()
+                presentingAlert = true
+            } label: {
+                Text("Reset attestation")
+            }.buttonStyle(.bordered)
+                .alert("Attestation key has been reset", isPresented: $presentingAlert, actions: {})
         }
     }
 }

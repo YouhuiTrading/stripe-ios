@@ -29,8 +29,6 @@ import Foundation
     @objc(STPPaymentMethodTypeAUBECSDebit) case AUBECSDebit
     /// A Bacs Debit payment method.
     case bacsDebit
-    /// A giropay payment method.
-    case giropay
     /// A Przelewy24 Debit payment method.
     case przelewy24
     /// An EPS payment method.
@@ -41,8 +39,6 @@ import Foundation
     case netBanking
     /// An OXXO payment method.
     @objc(STPPaymentMethodTypeOXXO) case OXXO
-    /// A Sofort payment method.
-    case sofort
     /// A UPI payment method.
     case UPI
     /// A PayPal payment method. :nodoc:
@@ -98,6 +94,8 @@ import Foundation
     case multibanco
     /// A ShopPay payment method
     @_spi(STP) case shopPay
+    /// A PayPay payment method
+    case payPay
     /// An unknown type.
     case unknown
 
@@ -118,8 +116,6 @@ import Foundation
             return STPLocalizedString("AU Direct Debit", "Payment Method type brand name.")
         case .grabPay:
             return STPLocalizedString("GrabPay", "Payment Method type brand name.")
-        case .giropay:
-            return STPLocalizedString("giropay", "Payment Method type brand name.")
         case .EPS:
             return STPLocalizedString("EPS", "Payment Method type brand name.")
         case .przelewy24:
@@ -130,8 +126,6 @@ import Foundation
             return STPLocalizedString("NetBanking", "Payment Method type brand name")
         case .OXXO:
             return STPLocalizedString("OXXO", "Payment Method type brand name")
-        case .sofort:
-            return STPLocalizedString("Sofort", "Payment Method type brand name")
         case .UPI:
             return STPLocalizedString("UPI", "Payment Method type brand name")
         case .payPal:
@@ -194,6 +188,8 @@ import Foundation
             return "Multibanco"
         case .shopPay:
             return "ShopPay"
+        case .payPay:
+            return "PayPay"
         case .cardPresent,
             .unknown:
             return STPLocalizedString("Unknown", "Default missing source type label")
@@ -223,8 +219,6 @@ import Foundation
             return "au_becs_debit"
         case .bacsDebit:
             return "bacs_debit"
-        case .giropay:
-            return "giropay"
         case .przelewy24:
             return "p24"
         case .EPS:
@@ -235,8 +229,6 @@ import Foundation
             return "netbanking"
         case .OXXO:
             return "oxxo"
-        case .sofort:
-            return "sofort"
         case .UPI:
             return "upi"
         case .payPal:
@@ -293,6 +285,8 @@ import Foundation
             return "multibanco"
         case .shopPay:
             return "shop_pay"
+        case .payPay:
+            return "paypay"
         }
     }
 
@@ -300,35 +294,11 @@ import Foundation
         return allCases.first(where: { $0.identifier == identifier }) ?? .unknown
     }
 
-    @_spi(STP) public static func fromNSNumber(_ nsNumber: NSNumber) -> STPPaymentMethodType {
-        return allCases.first(where: { NSNumber(value: $0.rawValue) == nsNumber }) ?? .unknown
-    }
-
 }
 
 extension STPPaymentMethodType: CaseIterable { }
 
 extension STPPaymentMethodType {
-    struct PollingRequirement {
-        /// - Note: This is a bit hacky. STPPaymentHandlet is hardcoded to poll the Intent status 5 times. `timeBetweenPollingAttempts` controls how long it waits between each poll.
-        var timeBetweenPollingAttempts: TimeInterval
-    }
-
-    /// If non-nil, Intents with this PM type do not update immediately after the next action is handled and require us to poll and this property contains the information needed to poll.
-    var pollingRequirement: PollingRequirement? {
-        switch self {
-        // Note: Card only requires polling for 3DS2 web-based transactions
-        case .card, .amazonPay, .revolutPay:
-            return PollingRequirement(timeBetweenPollingAttempts: 3)
-        case .swish, .twint, .przelewy24:
-            // We are intentionally polling for Swish, Twint, and Przelewy24 even though they use the redirect trampoline.
-            // The intent is still in `requires_action` status after redirecting following a successful payment (about 50% of the time for Swish).
-            // This allows time for the intent to transition to its terminal state.
-            return PollingRequirement(timeBetweenPollingAttempts: 1)
-        default:
-            return nil
-        }
-    }
 
     var supportsRefreshing: Bool {
         switch self {

@@ -57,10 +57,6 @@ extension String.Localized {
         STPLocalizedString("Billing address", "Billing address section title for card form entry.")
     }
 
-    @_spi(STP) public static var billing_details_lowercase: String {
-        STPLocalizedString("Billing details", "Billing details section title for card form entry.")
-    }
-
     @_spi(STP) public static var your_card_number_is_incomplete: String {
         STPLocalizedString(
             "Your card number is incomplete.",
@@ -146,6 +142,48 @@ extension String.Localized {
         STPLocalizedString(
             "The selected brand is not allowed",
             "String to inform a user that specific card brands are not accepted."
+        )
+    }
+
+    @_spi(STP) public static func only_funding_types_accepted(fundingTypes: String) -> String {
+        String.localizedStringWithFormat(
+            STPLocalizedString(
+                "Only %1$@ cards are accepted",
+                "Warning shown when only specific card funding types are accepted. E.g. 'Only debit cards are accepted' or 'Only debit and credit cards are accepted'"
+            ),
+            fundingTypes
+        )
+    }
+
+    @_spi(STP) public static func x_and_y(_ x: String, _ y: String) -> String {
+        String.localizedStringWithFormat(
+            STPLocalizedString(
+                "%1$@ and %2$@",
+                "A format string for joining two items with 'and'. E.g. 'debit and credit'"
+            ),
+            x,
+            y
+        )
+    }
+
+    @_spi(STP) public static var credit: String {
+        STPLocalizedString(
+            "Credit",
+            "Label for credit card funding type"
+        )
+    }
+
+    @_spi(STP) public static var debit: String {
+        STPLocalizedString(
+            "Debit",
+            "Label for debit card funding type"
+        )
+    }
+
+    @_spi(STP) public static var prepaid: String {
+        STPLocalizedString(
+            "Prepaid",
+            "Label for prepaid card funding type"
         )
     }
 

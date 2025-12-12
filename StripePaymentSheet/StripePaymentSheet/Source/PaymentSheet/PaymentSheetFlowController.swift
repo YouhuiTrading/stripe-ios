@@ -165,7 +165,7 @@ extension PaymentSheet {
             }
 
             init(paymentOption: PaymentOption, currency: String?, iconStyle: PaymentSheet.Appearance.IconStyle) {
-                image = paymentOption.makeIcon(currency: currency, iconStyle: iconStyle, updateImageHandler: nil)
+                image = paymentOption.makeIcon(currency: currency, iconStyle: iconStyle)
                 switch paymentOption {
                 case .applePay:
                     label = String.Localized.apple_pay
@@ -278,7 +278,7 @@ extension PaymentSheet {
 
         private var isPresented = false
         private(set) var didPresentAndContinue: Bool = false
-        private var passiveCaptchaChallenge: PassiveCaptchaChallenge?
+        private var confirmationChallenge: ConfirmationChallenge?
         let analyticsHelper: PaymentSheetAnalyticsHelper
 
         // MARK: - Initializer (Internal)
@@ -293,9 +293,8 @@ extension PaymentSheet {
             self.analyticsHelper.logInitialized()
             self.viewController = Self.makeViewController(configuration: configuration, loadResult: loadResult, analyticsHelper: analyticsHelper, walletButtonsViewState: self.walletButtonsViewState)
             self.viewController.flowControllerDelegate = self
-            self.passiveCaptchaChallenge = PassiveCaptchaChallenge(passiveCaptcha: loadResult.elementsSession.passiveCaptcha)
-            self.viewController.passiveCaptchaChallenge = self.passiveCaptchaChallenge
-            Task { await self.passiveCaptchaChallenge?.start() }
+            self.confirmationChallenge = ConfirmationChallenge(enablePassiveCaptcha: self.configuration.enablePassiveCaptcha, enableAttestation: self.configuration.enableAttestationOnConfirmation, elementsSession: loadResult.elementsSession, stripeAttest: self.configuration.apiClient.stripeAttest)
+            self.viewController.confirmationChallenge = self.confirmationChallenge
             updatePaymentOption()
         }
 
@@ -468,11 +467,6 @@ extension PaymentSheet {
             selectedPaymentDetailsID: String? = nil,
             returnToPaymentSheet: @escaping () -> Void
         ) {
-            let verificationDismissed: () -> Void = { [weak self] in
-                self?.didDismissLinkVerificationDialog = true
-                returnToPaymentSheet()
-            }
-
             let completionCallback: (PaymentSheet.LinkConfirmOption?, Bool) -> Void = { [weak self] confirmOption, shouldReturnToPaymentSheet in
                 guard let self else { return }
 
@@ -482,6 +476,12 @@ extension PaymentSheet {
                 }
 
                 if shouldReturnToPaymentSheet {
+                    self.viewController.linkConfirmOption = nil
+                    if case .link(let option) = self.internalPaymentOption, case .wallet = option {
+                        // The Link row was selected before we launched the Link flow, but the user decided to drop out
+                        // of the Link flow. We clear the selection to avoid having Link stay selected.
+                        self.viewController.clearSelection()
+                    }
                     self.updatePaymentOption()
                     returnToPaymentSheet()
                     return
@@ -491,19 +491,15 @@ extension PaymentSheet {
                 self.isPresented = false
             }
 
-            Task { @MainActor in
-                let hcaptchaToken = await self.passiveCaptchaChallenge?.fetchToken()
-                presentingViewController.presentNativeLink(
-                    selectedPaymentDetailsID: selectedPaymentDetailsID,
-                    configuration: configuration,
-                    intent: intent,
-                    elementsSession: elementsSession,
-                    analyticsHelper: analyticsHelper,
-                    verificationDismissed: verificationDismissed,
-                    hcaptchaToken: hcaptchaToken,
-                    callback: completionCallback
-                )
-            }
+            presentingViewController.presentNativeLink(
+                selectedPaymentDetailsID: selectedPaymentDetailsID,
+                configuration: configuration,
+                intent: intent,
+                elementsSession: elementsSession,
+                analyticsHelper: analyticsHelper,
+                confirmationChallenge: confirmationChallenge,
+                callback: completionCallback
+            )
         }
 
         /// Completes the payment or setup.
@@ -561,31 +557,28 @@ extension PaymentSheet {
             }
 
             func confirm() {
-                Task { @MainActor in
-                    let hcaptchaToken = await self.passiveCaptchaChallenge?.fetchToken()
-                    PaymentSheet.confirm(
-                        configuration: configuration,
-                        authenticationContext: authenticationContext,
-                        intent: intent,
-                        elementsSession: elementsSession,
+                PaymentSheet.confirm(
+                    configuration: configuration,
+                    authenticationContext: authenticationContext,
+                    intent: intent,
+                    elementsSession: elementsSession,
+                    paymentOption: paymentOption,
+                    paymentHandler: paymentHandler,
+                    integrationShape: .flowController,
+                    confirmationChallenge: confirmationChallenge,
+                    analyticsHelper: analyticsHelper
+                ) { [analyticsHelper, configuration] result, deferredIntentConfirmationType in
+                    analyticsHelper.logPayment(
                         paymentOption: paymentOption,
-                        paymentHandler: paymentHandler,
-                        integrationShape: .flowController,
-                        hcaptchaToken: hcaptchaToken,
-                        analyticsHelper: analyticsHelper
-                    ) { [analyticsHelper, configuration] result, deferredIntentConfirmationType in
-                        analyticsHelper.logPayment(
-                            paymentOption: paymentOption,
-                            result: result,
-                            deferredIntentConfirmationType: deferredIntentConfirmationType
-                        )
-                        if case .completed = result, case .link = paymentOption {
-                            // Remember Link as default payment method for users who just created an account.
-                            CustomerPaymentOption.setDefaultPaymentMethod(.link, forCustomer: configuration.customer?.id)
-                        }
-
-                        completion(result)
+                        result: result,
+                        deferredIntentConfirmationType: deferredIntentConfirmationType
+                    )
+                    if case .completed = result, case .link = paymentOption {
+                        // Remember Link as default payment method for users who just created an account.
+                        CustomerPaymentOption.setDefaultPaymentMethod(.link, forCustomer: configuration.customer?.id)
                     }
+
+                    completion(result)
                 }
             }
         }
@@ -607,7 +600,8 @@ extension PaymentSheet {
                 mode: .deferredIntent(intentConfiguration),
                 configuration: configuration,
                 analyticsHelper: analyticsHelper,
-                integrationShape: .flowController
+                integrationShape: .flowController,
+                isUpdate: true
             ) { [weak self] result in
                 assert(Thread.isMainThread, "PaymentSheet.FlowController.update load callback must be called from the main thread.")
                 guard let self = self else {
@@ -660,7 +654,6 @@ extension PaymentSheet {
                 loadResult: updatedLoadResult,
                 analyticsHelper: analyticsHelper,
                 walletButtonsViewState: self.walletButtonsViewState,
-                previousLinkConfirmOption: self.viewController.linkConfirmOption,
                 previousPaymentOption: self.internalPaymentOption
             )
             self.viewController.flowControllerDelegate = self
@@ -704,7 +697,6 @@ extension PaymentSheet {
             loadResult: PaymentSheetLoader.LoadResult,
             analyticsHelper: PaymentSheetAnalyticsHelper,
             walletButtonsViewState: PaymentSheet.WalletButtonsViewState,
-            previousLinkConfirmOption: LinkConfirmOption? = nil,
             previousPaymentOption: PaymentOption? = nil
         ) -> FlowControllerViewControllerProtocol {
             let controller: FlowControllerViewControllerProtocol
@@ -726,7 +718,6 @@ extension PaymentSheet {
                     previousPaymentOption: previousPaymentOption
                 )
             }
-            controller.linkConfirmOption = previousLinkConfirmOption
             return controller
         }
     }
@@ -839,15 +830,14 @@ internal protocol FlowControllerViewControllerProtocol: BottomSheetContentViewCo
     /// Note that, unlike selectedPaymentOption, this is non-nil even if the PM form is invalid.
     var selectedPaymentMethodType: PaymentSheet.PaymentMethodType? { get }
     var flowControllerDelegate: FlowControllerViewControllerDelegate? { get set }
-    var passiveCaptchaChallenge: PassiveCaptchaChallenge? { get set }
+    var confirmationChallenge: ConfirmationChallenge? { get set }
+    func clearSelection()
 }
 
 extension PaymentOption {
     var canLaunchLink: Bool {
         let hasLinkAccount = LinkAccountContext.shared.account?.isRegistered ?? false
         switch self {
-        case .saved(let paymentMethod, _):
-            return (paymentMethod.isLinkPaymentMethod || paymentMethod.isLinkPassthroughMode) && hasLinkAccount
         case .link(let confirmOption):
             switch confirmOption {
             case .signUp, .withPaymentMethod:
@@ -857,7 +847,7 @@ extension PaymentOption {
             case .withPaymentDetails:
                 return true
             }
-        case .applePay, .new, .external:
+        case .applePay, .new, .external, .saved:
             return false
         }
     }

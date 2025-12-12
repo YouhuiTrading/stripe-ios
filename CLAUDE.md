@@ -8,38 +8,44 @@ Before running tests or builds, ensure you have the correct simulator configured
 
 ### Automatic Simulator Detection
 
-**IMPORTANT**: Always include a `source` call to the automated script at `source <(./ci_scripts/setup_simulator.sh) && [...]` to set up the simulator and use the correct device ID:
+**IMPORTANT**: Always source the setup script before running xcodebuild commands:
+
+```bash
+source ci_scripts/setup_simulator.sh
+```
 
 The script will:
 1. Check for cached simulator ID in `.stripe-ios-config`
-2. Validate the cached simulator still exists
+2. Validate the cached simulator still exists and has valid UUID format
 3. Find existing iPhone 12 mini with iOS 16.4 or create a new one
-4. Cache the result for future use
+4. Export `DEVICE_ID_FROM_USER_SETTINGS` to your environment
+5. Cache the result for future use
 
 **If simulator issues occur**: Clear the cache and retry:
 ```bash
 ./ci_scripts/setup_simulator.sh --clear-cache
-source <(./ci_scripts/setup_simulator.sh)
+source ci_scripts/setup_simulator.sh
 ```
 
 ### Using the Device ID
 
-You must ALWAYS use the device ID in build commands:
+You must ALWAYS source the setup script before xcodebuild commands:
 ```bash
-source <(./ci_scripts/setup_simulator.sh) && xcodebuild -workspace Stripe.xcworkspace -scheme "StripePaymentSheet" -destination "id=$DEVICE_ID_FROM_USER_SETTINGS,arch=arm64" -quiet
+source ci_scripts/setup_simulator.sh
+xcodebuild -workspace Stripe.xcworkspace -scheme "StripePaymentSheet" -destination "id=$DEVICE_ID_FROM_USER_SETTINGS,arch=arm64" -quiet
+```
+
+Or in a single line:
+```bash
+source ci_scripts/setup_simulator.sh && xcodebuild -workspace Stripe.xcworkspace -scheme "StripePaymentSheet" -destination "id=$DEVICE_ID_FROM_USER_SETTINGS,arch=arm64" -quiet
 ```
 
 ### Quick Setup Check
 
 To verify the simulator is properly configured, run:
 ```bash
-source <(./ci_scripts/setup_simulator.sh) && echo "✅ Simulator configured: $DEVICE_ID_FROM_USER_SETTINGS"
+source ci_scripts/setup_simulator.sh && echo "✅ Simulator configured: $DEVICE_ID_FROM_USER_SETTINGS"
 ```
-
-## Adding new files
-If you create a new file, it MUST be added to the `.xcodeproj`. There is no reasonable way to do this on your own, you MUST ask the user to add the file manually before continuing.
-
-Ask the user to add the file to the `.xcodeproj`. Once they've completed this task, you can continue making progress.
 
 ## Build Commands
 
@@ -52,13 +58,14 @@ Ask the user to add the file to the `.xcodeproj`. Once they've completed this ta
 ### Standard Build Using Xcode
 For testing, use this standard command:
 ```bash
-source <(./ci_scripts/setup_simulator.sh) && xcodebuild -workspace Stripe.xcworkspace -scheme "StripePaymentSheet" -destination "id=$DEVICE_ID_FROM_USER_SETTINGS,arch=arm64" -quiet SWIFT_SUPPRESS_WARNINGS=YES SWIFT_TREAT_WARNINGS_AS_ERRORS=NO
+source ci_scripts/setup_simulator.sh && xcodebuild -workspace Stripe.xcworkspace -scheme "StripePaymentSheet" -destination "id=$DEVICE_ID_FROM_USER_SETTINGS,arch=arm64" -quiet SWIFT_SUPPRESS_WARNINGS=YES SWIFT_TREAT_WARNINGS_AS_ERRORS=NO
 ```
 (Replacing "StripePaymentSheet" with your desired test framework, or "AllStripeFrameworks" to test all frameworks.)
 
 ### **IMPORTANT: Suppress Warnings for Test Targets**
 When building test targets, always suppress warnings to avoid distracting output. Use `SWIFT_SUPPRESS_WARNINGS=YES SWIFT_TREAT_WARNINGS_AS_ERRORS=NO` in xcodebuild commands for test schemes:
 ```bash
+source ci_scripts/setup_simulator.sh
 xcodebuild test -scheme StripePaymentSheet -workspace Stripe.xcworkspace -destination "id=$DEVICE_ID_FROM_USER_SETTINGS,arch=arm64" -quiet SWIFT_SUPPRESS_WARNINGS=YES SWIFT_TREAT_WARNINGS_AS_ERRORS=NO
 ```
 (Replace "StripePaymentSheet" with the name of your scheme as needed.)
@@ -77,12 +84,14 @@ xcodebuild test -scheme StripePaymentSheet -workspace Stripe.xcworkspace -destin
 
 ## Code Quality
 
-### **IMPORTANT: Always Lint Before Committing**
-Before any commit, ALWAYS run these commands in order
+### Code Formatting and Linting
+The project has an automated hook (`.claude/settings.json`) that runs format and lint checks before every git commit or push. This ensures code quality standards are maintained automatically.
 
-1. **Check out a branch if needed**: If you are on the `master` branch, you MUST check out a new branch.
-2. **Format modified files**: `ci_scripts/format_modified_files.sh`
-3. **Lint modified files**: `ci_scripts/lint_modified_files.sh`
+If you need to run these checks manually:
+- **Format modified files**: `ci_scripts/format_modified_files.sh`
+- **Lint modified files**: `ci_scripts/lint_modified_files.sh`
+
+**Branch Requirements**: If you are on the `master` branch, you MUST check out a new branch before making commits.
 
 ### Filing PRs
 When using the GitHub `gh` command, ALWAYS set `GH_HOST=github.com`. For example: `GH_HOST=github.com gh pr create --title [...]`
@@ -114,7 +123,7 @@ The Stripe iOS SDK is organized as a multi-module framework with clear dependenc
 
 ### Key Workspaces and Projects
 - **Main workspace**: `Stripe.xcworkspace` - Contains all modules and examples
-- **Individual projects**: Each module has its own `.xcodeproj` for focused development
+- **Individual projects**: Each module has its own `.xcodeproj`
 - **Test configurations**: Located in `BuildConfigurations/` directories
 
 ### Package Manager Support

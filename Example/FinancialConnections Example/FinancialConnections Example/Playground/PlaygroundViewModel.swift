@@ -9,7 +9,7 @@
 import Combine
 import Foundation
 @_spi(STP) import StripeCore
-@_spi(STP) @_spi(v25) import StripeFinancialConnections
+@_spi(STP) import StripeFinancialConnections
 @_spi(STP) import StripePayments
 @_spi(STP) import StripePaymentSheet
 import SwiftUI
@@ -234,6 +234,18 @@ final class PlaygroundViewModel: ObservableObject {
             },
             set: {
                 self.playgroundConfiguration.liveEvents = $0
+                self.objectWillChange.send()
+            }
+        )
+    }
+
+    var fcLiteSecureWebview: Binding<Bool> {
+        Binding(
+            get: {
+                self.playgroundConfiguration.fcLiteSecureWebview
+            },
+            set: {
+                self.playgroundConfiguration.fcLiteSecureWebview = $0
                 self.objectWillChange.send()
             }
         )

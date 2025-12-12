@@ -33,6 +33,8 @@ final class LinkInlineSignupViewModel {
 
     private let accountService: LinkAccountServiceProtocol
 
+    let analyticsHelper: PaymentSheetAnalyticsHelper?
+
     private let accountLookupDebouncer = OperationDebouncer(debounceTime: LinkUI.accountLookupDebounceTime)
 
     private let country: String?
@@ -145,6 +147,10 @@ final class LinkInlineSignupViewModel {
                 notifyUpdate()
             }
         }
+    }
+
+    var useLiquidGlass: Bool {
+        configuration.appearance.cornerRadius == nil && LiquidGlassDetector.isEnabledInMerchantApp
     }
 
     var requiresNameCollection: Bool {
@@ -301,7 +307,7 @@ final class LinkInlineSignupViewModel {
     var bordered: Bool {
         switch mode {
         case .checkbox:
-            return !LiquidGlassDetector.isEnabled
+            return !useLiquidGlass
         case .checkboxWithDefaultOptIn, .textFieldsOnlyEmailFirst, .textFieldsOnlyPhoneFirst, .signupOptIn:
             return false
         }
@@ -310,7 +316,7 @@ final class LinkInlineSignupViewModel {
     var containerBackground: UIColor {
         switch mode {
         case .checkbox:
-            if LiquidGlassDetector.isEnabled {
+            if useLiquidGlass {
                 return configuration.appearance.colors.componentBackground
             } else {
                 return configuration.appearance.colors.background
@@ -320,10 +326,10 @@ final class LinkInlineSignupViewModel {
         }
     }
 
-    var containerCornerRadius: CGFloat {
+    var containerCornerRadius: CGFloat? {
         switch mode {
         case .checkbox:
-            return LiquidGlassDetector.isEnabled ? LinkUI.cornerRadius : configuration.appearance.cornerRadius
+            return configuration.appearance.cornerRadius
         case .checkboxWithDefaultOptIn, .textFieldsOnlyEmailFirst, .textFieldsOnlyPhoneFirst, .signupOptIn:
             // The content is right at the border of the view. Remove the corner radius so that we don't cut off anything.
             return 0
@@ -395,10 +401,12 @@ final class LinkInlineSignupViewModel {
         signupOptInFeatureEnabled: Bool,
         signupOptInInitialValue: Bool,
         linkAccount: PaymentSheetLinkAccount? = nil,
-        country: String? = nil
+        country: String? = nil,
+        analyticsHelper: PaymentSheetAnalyticsHelper? = nil
     ) {
         self.configuration = configuration
         self.accountService = accountService
+        self.analyticsHelper = analyticsHelper
         self.linkAccount = linkAccount
         self.emailAddress = linkAccount?.email
         if let email = self.emailAddress,
@@ -427,6 +435,10 @@ final class LinkInlineSignupViewModel {
                 return signupOptInInitialValue
             }
         }()
+    }
+
+    func logInlineSignupShown() {
+        analyticsHelper?.analyticsClient.logLinkInlineSignupShown(mode: self.mode)
     }
 }
 
@@ -481,4 +493,5 @@ private extension LinkInlineSignupViewModel {
             }
         }
     }
+
 }

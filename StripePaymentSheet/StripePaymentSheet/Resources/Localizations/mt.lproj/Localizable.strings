@@ -16,8 +16,6 @@
 
 "Add your payment information" = "Żid l-informazzjoni dwar il-pagament tiegħek";
 
-"Agree and continue" = "Aqbel u kompli";
-
 "Approve payment" = "Approva l-pagament";
 
 "Are you sure you want to remove this card?" = "Żgur li tixtieq tneħħi dil-karta?";
@@ -82,6 +80,8 @@
 
 "By saving your bank account for %@ you agree to authorize payments pursuant to <terms>these terms</terms>." = "Meta tissejvja l-kont tal-bank tiegħek għal %@ tkun qed taqbel li tawtorizza l-pagamenti skont <terms>dar-regoli</terms>.";
 
+"By submitting your order to %@ and %@, you agree to save your information with %@ for future purchases, and agree to authorize payments pursuant to <terms>these terms</terms>." = "Billi tissottometti l-ordni tiegħek lil %1$@ u %2$@, inti taqbel li tissejvja l-informazzjoni tiegħek ma’ %3$@ għal xirjiet futuri, u taqbel li tawtorizza pagamenti skont <terms>dawn it-termini</terms>.";
+
 "By submitting your order to %@ you agree to authorize payments pursuant to <terms>these terms</terms>." = "Billi tissottometti l-ordni tiegħek lil %@ inti taqbel li tawtorizza pagamenti skont <terms>dawn it-termini</terms>.";
 
 "CPF/CPNJ" = "CPF/CPNJ";
@@ -100,8 +100,6 @@
 
 "Confirm" = "Ikkonferma";
 
-"Confirm it's you" = "Ikkonferma li int min qed tgħid li int";
-
 "Confirm payment details" = "Ikkonferma d-dettalji tal-pagament";
 
 "Confirm the payment in your bank or payment app within %@ to complete the purchase." = "Biex tlesti x-xirja kkonferma l-pagament, fl-app tal-bank jew fl-app tal-pagamenti, fi żmien %@.";
@@ -109,6 +107,8 @@
 "Confirm the payment in your bank's app within %@ to complete the purchase." = "Ikkonferma l-pagament fl-app tal-bank fi żmien %@ biex tlesti x-xirja.";
 
 "Confirm your CVC" = "Ikkonferma l-kodiċi CVC tiegħek";
+
+"Confirm your information" = "Ikkonferma l-informazzjoni tiegħek";
 
 "Contact information" = "Id-dettalji tal-kuntatt";
 
@@ -122,19 +122,15 @@
 
 "Default payment method" = "Metodu tal-pagament standard";
 
+"Did you mean %@? %@." = "Ridt tfisser %1$@? %2$@.";
+
 "EPS Bank" = "EPS Bank";
 
 "Enter address manually" = "Ikteb l-indirizz int stess";
 
-"Enter the code sent to %@." = "Daħħal il-kodiċi li bgħatna lil %s.";
-
 "FPX Bank" = "FPX Bank";
 
-"Failed to connect" = "Ma nistgħux naqbdu";
-
 "Fast, secure checkout" = "Ħlas għax-xirja veloċi u sigur";
-
-"For security, please re-enter your card’s security code." = "Għal raġunijiet ta' sigurtà, jekk jogħġbok erġa' daħħal il-kodiċi tas-sigurtà tal-karta tiegħek.";
 
 "Get %@ back when you pay for the first time with your bank. <terms>See terms</terms>" = "Ikseb %@ lura meta tħallas bil-bank għall-ewwel darba. <terms>Aqra r-regoli</terms>";
 
@@ -143,6 +139,8 @@
 "I understand that Stripe will be collecting Direct Debits on behalf of %@ and confirm that I am the account holder and the only person required to authorise debits from this account." = "Jiena nifhem li Stripe se tkun qed tiġbor id-Debiti Diretti f'isem %@ u nikkonferma li jiena d-detentur tal-kont u l-unika persuna meħtieġa biex tawtorizza d-debiti minn dan il-kont.";
 
 "IBAN" = "IBAN";
+
+"Last 4 digits of SSN" = "L-aħħar 4 ċifri tal-SSN";
 
 "Log in or sign up" = "Idħol jew irreġistra";
 
@@ -224,8 +222,6 @@
 
 "Remove linked account" = "Neħħi l-kont marbut";
 
-"Resend code" = "Erġa' ibgħat il-kodiċi";
-
 "SEPA debit details cannot be changed." = "Id-dettalji tad-debitu SEPA ma jistgħux jinbidlu.";
 
 "Save" = "Erfa'";
@@ -284,8 +280,6 @@
 
 "The provided verification code is incorrect." = "Il-kodiċi tal-verifika mogħti mhuwiex tajjeb.";
 
-"This card has expired. Update your card info or choose a different payment method." = "Dil-karta skadiet. Aġġorna d-dettalji tal-karta tiegħek jew agħżel metodu tal-pagament ieħor.";
-
 "This is your default" = "Dan il-metodu tal-pagament standard tiegħek";
 
 "This payment method will be removed but will remain available for %@ subscriptions." = "Dan il-metodu ta' pagament se jitneħħa iżda se jibqa' disponibbli għal abbonamenti ta' %@.";
@@ -301,6 +295,8 @@
 "Use billing address for shipping" = "Uża l-indirizz tal-ħlas għall-kunsinna";
 
 "View more" = "Uri iktar";
+
+"Yes, update" = "Iva, aġġorna";
 
 "Your IBAN should start with a two-letter country code." = "L-IBAN tiegħek għandu jibda b'kodiċi tal-pajjiż magħmul minn żewġ ittri.";
 

@@ -220,6 +220,8 @@ final class PayWithLinkViewController: BottomSheetViewController {
         linkAppearance: LinkAppearance? = nil,
         linkConfiguration: LinkConfiguration? = nil
     ) {
+        LinkUI.applyLiquidGlassIfPossible(configuration: configuration)
+
         self.init(
             context: Context(
                 intent: intent,
@@ -600,7 +602,6 @@ extension PayWithLinkViewController: PayWithLinkCoordinating {
             switch sessionResult {
             case .success(let session):
                 session.createLinkAccountSession(
-                    consumerAccountPublishableKey: linkAccount.publishableKey,
                     linkMode: self?.context.elementsSession.linkSettings?.linkMode,
                     intentToken: self?.context.intent.stripeId
                 ) { [session, weak self] linkAccountSessionResult in
@@ -648,10 +649,13 @@ extension PayWithLinkViewController: PayWithLinkCoordinating {
             verificationSessions: verificationSessions
         )
 
+        let clientAttributionMetadata = STPClientAttributionMetadata.makeClientAttributionMetadataIfNecessary(analyticsHelper: context.analyticsHelper, intent: context.intent, elementsSession: context.elementsSession)
+
         func createPaymentDetails(linkedAccountId: String) {
             linkAccount.createPaymentDetails(
                 linkedAccountId: linkedAccountId,
                 isDefault: false,
+                clientAttributionMetadata: clientAttributionMetadata,
                 completion: { paymentDetailsResult in
                     switch paymentDetailsResult {
                     case .success:
@@ -669,7 +673,12 @@ extension PayWithLinkViewController: PayWithLinkCoordinating {
             returnURL: context.configuration.returnURL,
             existingConsumer: consumer,
             style: .automatic,
-            elementsSessionContext: nil,
+            elementsSessionContext: ElementsSessionContext(
+                linkSettings: context.elementsSession.linkSettings.map {
+                    ElementsSessionContext.LinkSettings(useAttestationEndpoints: $0.useAttestationEndpoints)
+                },
+                clientAttributionMetadata: clientAttributionMetadata
+            ),
             onEvent: nil,
             from: self,
             completion: { result in

@@ -3,7 +3,7 @@
 //  StripePaymentSheet
 //
 //  Created by Yuki Tokuhiro on 9/3/20.
-//  Copyright © 2020 Stripe, Inc. All rights reserved.
+//  Copyright © 2025 Stripe, Inc. All rights reserved.
 //
 
 import Foundation
@@ -153,8 +153,7 @@ public class PaymentSheet {
         ) { result in
             switch result {
             case .success(let loadResult):
-                self.passiveCaptchaChallenge = PassiveCaptchaChallenge(passiveCaptcha: loadResult.elementsSession.passiveCaptcha)
-                Task { await self.passiveCaptchaChallenge?.start() }
+                self.confirmationChallenge = ConfirmationChallenge(enablePassiveCaptcha: self.configuration.enablePassiveCaptcha, enableAttestation: self.configuration.enableAttestationOnConfirmation, elementsSession: loadResult.elementsSession, stripeAttest: self.configuration.apiClient.stripeAttest)
                 let presentPaymentSheet: () -> Void = {
                     // Set the PaymentSheetViewController as the content of our bottom sheet
                     let paymentSheetVC: PaymentSheetViewControllerProtocol = {
@@ -210,16 +209,19 @@ public class PaymentSheet {
         presentingViewController.presentAsBottomSheet(bottomSheetViewController, appearance: configuration.appearance)
     }
 
-    /// Deletes all persisted authentication state associated with a customer.
-    ///
-    /// You must call this method when the user logs out from your app.
-    /// This will ensure that any persisted authentication state in PaymentSheet,
-    /// such as authentication cookies, is also cleared during logout.
-    ///
-    /// - Warning: Deprecated. Use `PaymentSheet.resetCustomer()` instead.
-    @available(*, deprecated, renamed: "resetCustomer()")
-    public static func reset() {
-        resetCustomer()
+    /// Presents a sheet for a customer to complete their payment
+    /// - Parameter presentingViewController: The view controller to present a payment sheet
+    /// - Returns: The result of the payment after the payment sheet is dismissed.
+    public func present(
+        from presentingViewController: UIViewController
+    ) async -> PaymentSheetResult {
+        return await withCheckedContinuation { continuation in
+            Task { @MainActor in
+                present(from: presentingViewController) { result in
+                    continuation.resume(returning: result)
+                }
+            }
+        }
     }
 
     /// Deletes all persisted authentication state associated with a customer.
@@ -268,7 +270,7 @@ public class PaymentSheet {
 
     let analyticsHelper: PaymentSheetAnalyticsHelper
 
-    var passiveCaptchaChallenge: PassiveCaptchaChallenge?
+    var confirmationChallenge: ConfirmationChallenge?
 }
 
 extension PaymentSheet: PaymentSheetViewControllerDelegate {
@@ -280,38 +282,35 @@ extension PaymentSheet: PaymentSheetViewControllerDelegate {
     ) {
         let presentingViewController = paymentSheetViewController.presentingViewController
         let confirm: (@escaping (PaymentSheetResult, StripeCore.STPAnalyticsClient.DeferredIntentConfirmationType?) -> Void) -> Void = { completion in
-            Task { @MainActor in
-                let hcaptchaToken = await self.passiveCaptchaChallenge?.fetchToken()
-                PaymentSheet.confirm(
-                    configuration: self.configuration,
-                    authenticationContext: self.bottomSheetViewController,
-                    intent: paymentSheetViewController.intent,
-                    elementsSession: paymentSheetViewController.elementsSession,
-                    paymentOption: paymentOption,
-                    paymentHandler: self.paymentHandler,
-                    integrationShape: .complete,
-                    hcaptchaToken: hcaptchaToken,
-                    analyticsHelper: self.analyticsHelper
-                ) { result, deferredIntentConfirmationType in
-                    if case let .failed(error) = result {
-                        self.mostRecentError = error
-                    }
+            PaymentSheet.confirm(
+                configuration: self.configuration,
+                authenticationContext: self.bottomSheetViewController,
+                intent: paymentSheetViewController.intent,
+                elementsSession: paymentSheetViewController.elementsSession,
+                paymentOption: paymentOption,
+                paymentHandler: self.paymentHandler,
+                integrationShape: .complete,
+                confirmationChallenge: self.confirmationChallenge,
+                analyticsHelper: self.analyticsHelper
+            ) { result, deferredIntentConfirmationType in
+                if case let .failed(error) = result {
+                    self.mostRecentError = error
+                }
 
-                    if case .link = paymentOption {
-                        // End special Link blur animation before calling completion
-                        switch result {
-                        case .canceled, .failed:
-                            self.bottomSheetViewController.removeBlurEffect(animated: true) {
-                                completion(result, deferredIntentConfirmationType)
-                            }
-                        case .completed:
-                            self.bottomSheetViewController.transitionSpinnerToComplete(animated: true) {
-                                completion(result, deferredIntentConfirmationType)
-                            }
+                if case .link = paymentOption {
+                    // End special Link blur animation before calling completion
+                    switch result {
+                    case .canceled, .failed:
+                        self.bottomSheetViewController.removeBlurEffect(animated: true) {
+                            completion(result, deferredIntentConfirmationType)
                         }
-                    } else {
-                        completion(result, deferredIntentConfirmationType)
+                    case .completed:
+                        self.bottomSheetViewController.transitionSpinnerToComplete(animated: true) {
+                            completion(result, deferredIntentConfirmationType)
+                        }
                     }
+                } else {
+                    completion(result, deferredIntentConfirmationType)
                 }
             }
         }

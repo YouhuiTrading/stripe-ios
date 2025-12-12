@@ -84,6 +84,13 @@ extension String.Localized {
         STPLocalizedString("By submitting your order to %@ you agree to authorize payments pursuant to <terms>these terms</terms>.", "Text providing link to terms for bank payments")
     }
 
+    static var bank_continue_mandate_and_reuse_text_with_seller: String {
+        STPLocalizedString(
+            "By submitting your order to %@ and %@, you agree to save your information with %@ for future purchases, and agree to authorize payments pursuant to <terms>these terms</terms>.",
+            "Text providing link to terms for bank payments when seller information is provided"
+        )
+    }
+
     static var back: String {
         STPLocalizedString("Back", "Text for back button")
     }
@@ -545,5 +552,13 @@ extension String.Localized {
 
     static var use_billing_address_for_shipping: String {
         STPLocalizedString("Use billing address for shipping", "Label for checkbox in address form allowing user to use billing address")
+    }
+
+    static var confirm_your_information: String {
+        STPLocalizedString("Confirm your information", "Title label for a know-your-customer (KYC) verification screen")
+    }
+
+    static var last_4_digits_of_ssn: String {
+        STPLocalizedString("Last 4 digits of SSN", "Label for displaying the last 4 digits of the user's social security number")
     }
 }

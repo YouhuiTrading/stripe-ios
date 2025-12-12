@@ -221,6 +221,13 @@ extension PaymentSheet {
         /// Note: Card brand filtering is not currently supported by Link.
         public var cardBrandAcceptance: PaymentSheet.CardBrandAcceptance = .all
 
+        /// By default, PaymentSheet will accept cards of all funding types (credit, debit, prepaid, unknown).
+        /// You can specify which card funding types to allow.
+        /// When a customer enters a card that isn't allowed, a warning will be displayed, but they can still complete the payment.
+        ///
+        /// This is a client-side UX feature only. You must validate the funding type on your server using the confirmation token or radar rules before confirming the payment to ensure only allowed funding types are accepted.
+        @_spi(CardFundingFilteringPrivatePreview) public var allowedCardFundingTypes: PaymentSheet.CardFundingType = .all
+
         /// A map for specifying when legal agreements are displayed for each payment method type.
         /// If the payment method is not specified in the list, the TermsDisplay value will default to `.automatic`.
         /// Valid payment method types include:
@@ -230,6 +237,12 @@ extension PaymentSheet {
         /// By default, the card form will provide a button to open the card scanner.
         /// If true, the card form will instead initialize with the card scanner already open.
         public var opensCardScannerAutomatically: Bool = false
+
+        /// If true, an invisible challenge will be performed for human verification
+        @_spi(STP) public var enablePassiveCaptcha: Bool = false
+
+        /// If true, device will attest and assert on confirmation requests
+        @_spi(STP) public var enableAttestationOnConfirmation: Bool = false
 
         /// Set to `true` if using a wallet buttons view. This changes a few behaviors of PaymentSheet (for example, wallet buttons will never be selected by default).
         @_spi(STP) public var willUseWalletButtonsView = false
@@ -304,24 +317,18 @@ extension PaymentSheet {
         /// See https://stripe.com/docs/api/customers/object#customer_object-id
         public let id: String
 
-        /// A short-lived token that allows the SDK to access a Customer's payment methods
-        public let ephemeralKeySecret: String
-
         internal let customerAccessProvider: CustomerAccessProvider
 
         /// Initializes a CustomerConfiguration with an ephemeralKeySecret
         public init(id: String, ephemeralKeySecret: String) {
             self.id = id
             self.customerAccessProvider = .legacyCustomerEphemeralKey(ephemeralKeySecret)
-            self.ephemeralKeySecret = ephemeralKeySecret
         }
 
         /// Initializes a CustomerConfiguration with a customerSessionClientSecret
-        @_spi(CustomerSessionBetaAccess)
         public init(id: String, customerSessionClientSecret: String) {
             self.id = id
             self.customerAccessProvider = .customerSession(customerSessionClientSecret)
-            self.ephemeralKeySecret = ""
 
             stpAssert(!customerSessionClientSecret.hasPrefix("ek_"),
                       "Argument looks like an Ephemeral Key secret, but expecting a CustomerSession client secret. See CustomerSession API: https://docs.stripe.com/api/customer_sessions/create")
@@ -388,18 +395,16 @@ extension PaymentSheet {
             /// In your implementation, you can configure the PKPaymentAuthorizationResult to add custom fields, such as `orderDetails`.
             /// See https://developer.apple.com/documentation/passkit/pkpaymentauthorizationresult for all configuration options.
             /// - Parameter $0: The PKPaymentAuthorizationResult created by PaymentSheet.
-            /// - Parameter $1: A completion handler. You must call this handler with the PKPaymentAuthorizationResult on the main queue
-            /// after applying your modifications.
+            /// - Returns: An updated authorization result.
             /// For example:
             /// ```
-            /// .authorizationResultHandler = { result, completion in
+            /// .authorizationResultHandler = { result in
             ///     result.orderDetails = PKPaymentOrderDetails(/* ... */)
-            ///     completion(result)
+            ///     return result
             /// }
             /// ```
-            /// WARNING: If you do not call the completion handler, your app will hang until the Apple Pay sheet times out.
-            public let authorizationResultHandler:
-            ((PKPaymentAuthorizationResult, @escaping ((PKPaymentAuthorizationResult) -> Void)) -> Void)?
+            public let authorizationResultHandler: AuthorizationResultHandler?
+            public typealias AuthorizationResultHandler = (_ result: PKPaymentAuthorizationResult) async -> PKPaymentAuthorizationResult
 
             /// Optionally get shipping method updates if you've configured shipping method options
             /// This closure will be called each time a user selects a new shipping option
@@ -436,9 +441,7 @@ extension PaymentSheet {
             /// Initializes the ApplePayConfiguration Handlers.
             public init(
                 paymentRequestHandler: ((PKPaymentRequest) -> PKPaymentRequest)? = nil,
-                authorizationResultHandler: (
-                    (PKPaymentAuthorizationResult, @escaping ((PKPaymentAuthorizationResult) -> Void)) -> Void
-                )? = nil
+                authorizationResultHandler: AuthorizationResultHandler? = nil
             ) {
                 self.paymentRequestHandler = paymentRequestHandler
                 self.authorizationResultHandler = authorizationResultHandler
@@ -449,9 +452,7 @@ extension PaymentSheet {
             /// Initializes the ApplePayConfiguration w/ ShippingMethod & ShippingContact update handlers
             @_spi(STP) public init(
                 paymentRequestHandler: ((PKPaymentRequest) -> PKPaymentRequest)? = nil,
-                authorizationResultHandler: (
-                    (PKPaymentAuthorizationResult, @escaping ((PKPaymentAuthorizationResult) -> Void)) -> Void
-                )? = nil,
+                authorizationResultHandler: AuthorizationResultHandler? = nil,
                 shippingMethodUpdateHandler: (
                     (PKShippingMethod, @escaping ((PKPaymentRequestShippingMethodUpdate) -> Void)) -> Void
                 )? = nil,
@@ -486,6 +487,9 @@ extension PaymentSheet {
     public struct LinkConfiguration {
         /// The Link display mode.
         public var display: Display = .automatic
+
+        /// The Link funding sources that should be disabled. Defaults to an empty set.
+        @_spi(STP) public var disallowFundingSourceCreation: Set<String> = []
 
         /// Whether missing billing details should be collected for existing Link payment methods.
         @_spi(CollectMissingLinkBillingDetailsPreview) public var collectMissingBillingDetailsForExistingPaymentMethods: Bool = true
@@ -855,16 +859,14 @@ extension PaymentSheet {
 
         /// - Parameter externalPaymentMethodType: The external payment method to confirm payment with e.g., "external_paypal"
         /// - Parameter billingDetails: An object containing any billing details you've configured PaymentSheet to collect.
-        /// - Parameter completion: Call this after payment has completed, passing the result of the payment.
         /// - Returns: The result of the attempt to confirm payment using the given external payment method.
         public typealias ExternalPaymentMethodConfirmHandler = (
             _ externalPaymentMethodType: String,
-            _ billingDetails: STPPaymentMethodBillingDetails,
-            _ completion: @escaping ((PaymentSheetResult) -> Void)
-        ) -> Void
+            _ billingDetails: STPPaymentMethodBillingDetails
+        ) async -> PaymentSheetResult
 
         /// This handler is called when the customer confirms the payment using an external payment method.
-        /// Your implementation should complete the payment and call the `completion` parameter with the result.
+        /// Your implementation should complete the payment and return the result.
         /// - Note: This is always called on the main thread.
         public var externalPaymentMethodConfirmHandler: ExternalPaymentMethodConfirmHandler
     }
@@ -938,7 +940,7 @@ extension STPPaymentMethodBillingDetails {
     }
 }
 extension PaymentSheet.CustomerConfiguration {
-    func ephemeralKeySecretBasedOn(elementsSession: STPElementsSession?) -> String? {
+    func ephemeralKeySecret(basedOn elementsSession: STPElementsSession?) -> String? {
         switch customerAccessProvider {
         case .legacyCustomerEphemeralKey(let legacy):
             return legacy
@@ -982,5 +984,29 @@ extension PaymentSheet {
         /// Accept all card brands supported by Stripe except for those specified in the associated value
         /// - Note: Any card brands that do not map to a `BrandCategory` will be accepted when using a disallow list.
         case disallowed(brands: [BrandCategory])
+    }
+}
+
+extension PaymentSheet {
+    /// Card funding types that can be filtered
+    @_spi(CardFundingFilteringPrivatePreview) public struct CardFundingType: OptionSet, Equatable {
+        public let rawValue: Int
+
+        public init(rawValue: Int) {
+            self.rawValue = rawValue
+        }
+
+        /// Debit cards
+        public static let debit = CardFundingType(rawValue: 1 << 0)
+        /// Credit cards
+        public static let credit = CardFundingType(rawValue: 1 << 1)
+        /// Prepaid cards
+        public static let prepaid = CardFundingType(rawValue: 1 << 2)
+        /// Unknown or undetermined funding type.
+        /// Include this if you want to accept cards where the funding type cannot be determined from card metadata.
+        public static let unknown = CardFundingType(rawValue: 1 << 3)
+
+        /// Accept all card funding types (internal - users should simply not set allowedCardFundingTypes to accept all)
+        static let all: CardFundingType = [.debit, .credit, .prepaid, .unknown]
     }
 }

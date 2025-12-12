@@ -12,6 +12,7 @@ import Foundation
 import UIKit
 
 /// A delegate for `AddressViewController`
+@MainActor @preconcurrency
 public protocol AddressViewControllerDelegate: AnyObject {
     /// Called when the customer finishes entering their address or dismisses the view controller. Your implementation should dismiss the view controller.
     /// - Parameter address: A valid address or nil if the address information is incomplete or invalid.
@@ -134,6 +135,8 @@ public class AddressViewController: UIViewController {
             if isAddressCompatible(configuration.defaultValues) {
                 return configuration.defaultValues
             }
+        } else if configuration.defaultValues.name?.isEmpty == false {
+            return configuration.defaultValues
         }
 
         // Fall back to billing address
@@ -179,7 +182,10 @@ public class AddressViewController: UIViewController {
 
         guard isCompatible else { return nil }
 
-        // Default to checked if shipping address (defaultValues) is empty or not provided
+        // Only show checkbox if billing address has at least line1
+        guard billingAddress.address.line1?.nonEmpty != nil else { return nil }
+
+        // Default to checked if shipping address (defaultValues) is empty
         let isSelectedByDefault = configuration.defaultValues.address.isEmpty
 
         return CheckboxElement(
@@ -362,10 +368,18 @@ extension AddressViewController {
         // Populate name and phone if available
         addressSection.name?.setText(addressDetails.name ?? "")
         if let phone = addressDetails.phone {
-            addressSection.phone?.setPhoneNumber(phone)
-        }
-        if let phoneCountry = addressDetails.address.country {
-            addressSection.phone?.setSelectedCountryCode(phoneCountry, shouldUpdateDefaultNumber: false)
+            // Check if phone number is in E.164 format and parse it properly
+            if let parsedPhone = PhoneNumber.fromE164(phone) {
+                // Use parsed country code and local number for E.164 format
+                addressSection.phone?.setSelectedCountryCode(parsedPhone.countryCode, shouldUpdateDefaultNumber: false)
+                addressSection.phone?.setPhoneNumber(parsedPhone.number)
+            } else {
+                // Fall back to original logic for non-E.164 numbers
+                addressSection.phone?.setPhoneNumber(phone)
+                if let phoneCountry = addressDetails.address.country {
+                    addressSection.phone?.setSelectedCountryCode(phoneCountry, shouldUpdateDefaultNumber: false)
+                }
+            }
         }
     }
 
@@ -404,12 +418,13 @@ extension AddressViewController {
         guard hasLoadedSpecs else { return nil }
 
         let defaultValues = compatibleDefaultValues ?? .init()
+        let showFullForm = compatibleDefaultValues?.address.line1?.isEmpty == false
 
         return AddressSectionElement(
             countries: configuration.allowedCountries.isEmpty ? nil : configuration.allowedCountries,
             addressSpecProvider: addressSpecProvider,
             defaults: .init(from: defaultValues),
-            collectionMode: compatibleDefaultValues != nil ? .all(autocompletableCountries: configuration.autocompleteCountries) : .autoCompletable,
+            collectionMode: showFullForm ? .all(autocompletableCountries: configuration.autocompleteCountries) : .autoCompletable,
             additionalFields: .init(from: configuration.additionalFields),
             theme: configuration.appearance.asElementsTheme,
             presentAutoComplete: { [weak self] in

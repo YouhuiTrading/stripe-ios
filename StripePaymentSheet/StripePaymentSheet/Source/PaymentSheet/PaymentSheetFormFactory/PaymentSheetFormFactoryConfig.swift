@@ -28,14 +28,6 @@ enum PaymentSheetFormFactoryConfig {
             return config.merchantDisplayName
         }
     }
-    var overrideCountry: String? {
-        switch self {
-        case .paymentElement(let config, _):
-            return config.userOverrideCountry
-        case .customerSheet:
-            return nil
-        }
-    }
     var billingDetailsCollectionConfiguration: PaymentSheet.BillingDetailsCollectionConfiguration {
         switch self {
         case .paymentElement(let config, _):
@@ -101,6 +93,17 @@ enum PaymentSheetFormFactoryConfig {
             return config.cardBrandFilter
         case .customerSheet(let config):
             return config.cardBrandFilter
+        }
+    }
+
+    func cardFundingFilter(for elementsSession: STPElementsSession) -> CardFundingFilter {
+        switch self {
+        case .paymentElement(let config, _):
+            return config.cardFundingFilter(for: elementsSession)
+        case .customerSheet:
+            // CustomerSheet does not yet support card funding filtering
+            // Just return the default filter (none)
+            return .default
         }
     }
 

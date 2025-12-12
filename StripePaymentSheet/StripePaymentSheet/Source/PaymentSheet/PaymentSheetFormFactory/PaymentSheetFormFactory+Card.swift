@@ -80,6 +80,7 @@ extension PaymentSheetFormFactory {
             theme: theme,
             analyticsHelper: analyticsHelper,
             cardBrandFilter: configuration.cardBrandFilter,
+            cardFundingFilter: cardFundingFilter,
             opensCardScannerAutomatically: configuration.opensCardScannerAutomatically,
             linkAppearance: linkAppearance
         )
@@ -148,7 +149,8 @@ extension PaymentSheetFormFactory {
                 accountService: accountService,
                 allowsDefaultOptIn: allowsLinkDefaultOptIn,
                 signupOptInFeatureEnabled: signupOptInFeatureEnabled,
-                signupOptInInitialValue: signupOptInInitialValue
+                signupOptInInitialValue: signupOptInInitialValue,
+                analyticsHelper: analyticsHelper
             )
             elements.append(inlineSignupElement)
         }

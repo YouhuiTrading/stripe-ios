@@ -16,8 +16,6 @@
 
 "Add your payment information" = "Pridėkite mokėjimo informaciją";
 
-"Agree and continue" = "Sutikti ir tęsti";
-
 "Approve payment" = "Patvirtinti mokėjimą";
 
 "Are you sure you want to remove this card?" = "Ar tikrai norite pašalinti šią kortelę?";
@@ -82,6 +80,8 @@
 
 "By saving your bank account for %@ you agree to authorize payments pursuant to <terms>these terms</terms>." = "Išsaugodami savo banko sąskaitą %@, sutinkate autorizuoti mokėjimus pagal šias <terms>sąlygas</terms>.";
 
+"By submitting your order to %@ and %@, you agree to save your information with %@ for future purchases, and agree to authorize payments pursuant to <terms>these terms</terms>." = "Pateikdami užsakymą %1$@ ir %2$@, sutinkate išsaugoti savo informaciją %3$@ būsimiems pirkiniams ir sutinkate pagal <terms>šias sąlygas</terms> autorizuoti mokėjimus.";
+
 "By submitting your order to %@ you agree to authorize payments pursuant to <terms>these terms</terms>." = "Pateikdami užsakymą %@, sutinkate mokėjimus autorizuoti pagal <terms>šias sąlygas</terms>.";
 
 "CPF/CPNJ" = "CPF/CPNJ";
@@ -100,8 +100,6 @@
 
 "Confirm" = "Patvirtinti";
 
-"Confirm it's you" = "Patvirtinkite, kad tai jūs";
-
 "Confirm payment details" = "Patvirtinti mokėjimo duomenis";
 
 "Confirm the payment in your bank or payment app within %@ to complete the purchase." = "Patvirtinkite mokėjimą banke ar programėlėje per %@ ir užbaikite pirkimą.";
@@ -109,6 +107,8 @@
 "Confirm the payment in your bank's app within %@ to complete the purchase." = "Patvirtinkite mokėjimą savo banko programėlėje per %@ ir užbaikite pirkimą.";
 
 "Confirm your CVC" = "Patvirtinkite savo CVC";
+
+"Confirm your information" = "Patvirtinkite informaciją";
 
 "Contact information" = "Kontaktinė informacija";
 
@@ -122,19 +122,15 @@
 
 "Default payment method" = "Numatytasis mokėjimo būdas";
 
+"Did you mean %@? %@." = "Ar norėjote %1$@? %2$@.";
+
 "EPS Bank" = "EPS bankas";
 
 "Enter address manually" = "Įvesti adresą rankiniu būdu";
 
-"Enter the code sent to %@." = "Įveskite kodą, išsiųstą %s.";
-
 "FPX Bank" = "FPX bankas";
 
-"Failed to connect" = "Nepavyko prisijungti";
-
 "Fast, secure checkout" = "Greitas ir saugus pirkimo užbaigimas";
-
-"For security, please re-enter your card’s security code." = "Saugumo sumetimais dar kartą įveskite kortelės saugumo kodą.";
 
 "Get %@ back when you pay for the first time with your bank. <terms>See terms</terms>" = "Atgaukite %@ pirmą kartą mokėdami per savo banką. <terms>Žr. sąlygas</terms>";
 
@@ -143,6 +139,8 @@
 "I understand that Stripe will be collecting Direct Debits on behalf of %@ and confirm that I am the account holder and the only person required to authorise debits from this account." = "Suprantu, kad \"Stripe\" atliks tiesioginio debeto nuskaitymus \"%@\" vardu ir patvirtinu, kad esu sąskaitos turėtojas bei vienintelis asmuo, galintis leisti atlikti debeto nuskaitymus nuo šios sąskaitos.";
 
 "IBAN" = "IBAN";
+
+"Last 4 digits of SSN" = "Paskutiniai 4 SSN skaitmenys";
 
 "Log in or sign up" = "Prisijungti arba prisiregistruoti";
 
@@ -224,8 +222,6 @@
 
 "Remove linked account" = "Pašalinti susietą paskyrą";
 
-"Resend code" = "Pakartotinai siųsti kodą";
-
 "SEPA debit details cannot be changed." = "SEPA debeto duomenų keisti negalima.";
 
 "Save" = "Išsaugoti";
@@ -284,8 +280,6 @@
 
 "The provided verification code is incorrect." = "Nurodytas neteisingas patikrinimo kodas.";
 
-"This card has expired. Update your card info or choose a different payment method." = "Ši kortelė nebegalioja. Atnaujinkite savo kortelės informaciją arba pasirinkite kitą mokėjimo būdą.";
-
 "This is your default" = "Tai jūsų numatytasis mokėjimo būdas";
 
 "This payment method will be removed but will remain available for %@ subscriptions." = "Šis mokėjimo būdas bus pašalintas, tačiau ir toliau bus galima naudotis %@ prenumeratomis.";
@@ -301,6 +295,8 @@
 "Use billing address for shipping" = "Atsiskaitymo adresą naudoti siuntimui";
 
 "View more" = "Peržiūrėti daugiau";
+
+"Yes, update" = "Taip, atnaujinti";
 
 "Your IBAN should start with a two-letter country code." = "Jūsų IBAN turėtų prasidėti šalies kodu iš dviejų raidžių.";
 

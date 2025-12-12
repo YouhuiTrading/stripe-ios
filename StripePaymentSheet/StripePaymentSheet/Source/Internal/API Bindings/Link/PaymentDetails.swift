@@ -69,7 +69,8 @@ extension ConsumerPaymentDetails {
     func isSupported(linkAccount: PaymentSheetLinkAccount,
                      elementsSession: STPElementsSession,
                      configuration: PaymentElementConfiguration,
-                     cardBrandFilter: CardBrandFilter) -> Bool {
+                     cardBrandFilter: CardBrandFilter,
+                     cardFundingFilter: CardFundingFilter) -> Bool {
         guard linkAccount.supportedPaymentDetailsTypes(for: elementsSession).contains(type) else {
             return false
         }
@@ -77,6 +78,12 @@ extension ConsumerPaymentDetails {
         if case let .card(details) = details,
            !cardBrandFilter.isAccepted(cardBrand: details.stpBrand),
            elementsSession.linkCardBrandFilteringEnabled {
+            return false
+        }
+
+        // Check if card funding type is accepted
+        if case let .card(details) = details,
+           !cardFundingFilter.isAccepted(cardFundingType: details.funding.stpFundingType) {
             return false
         }
 
@@ -248,6 +255,15 @@ extension ConsumerPaymentDetails.Details.Card {
             case .unparsable: String.Localized.Funding.default
             }
         }
+
+        var stpFundingType: STPCardFundingType {
+            switch self {
+            case .credit: return .credit
+            case .debit: return .debit
+            case .prepaid: return .prepaid
+            case .unparsable: return .other
+            }
+        }
     }
 
     var shouldRecollectCardCVC: Bool {
@@ -301,7 +317,7 @@ extension ConsumerPaymentDetails.Details {
 
         private enum CodingKeys: String, CodingKey {
             case iconCode = "bankIconCode"
-            case name = "bankName"
+            case name = "bankAccountName"
             case last4
             case country
         }
@@ -316,6 +332,13 @@ extension ConsumerPaymentDetails.Details {
             self.name = name
             self.last4 = last4
             self.country = country
+        }
+
+        func displayName(with nickname: String?) -> String {
+            if let nickname {
+                return nickname
+            }
+            return name
         }
     }
 }
@@ -334,7 +357,7 @@ extension ConsumerPaymentDetails {
         case .card(let card):
             return card.displayName(with: nickname) ?? card.secondaryName
         case .bankAccount(let bank):
-            return "•••• \(bank.last4)"
+            return bank.displayName(with: nickname)
         case .unparsable:
             return ""
         }
@@ -348,7 +371,7 @@ extension ConsumerPaymentDetails {
             let components = [label, sublabel].compactMap { $0 }
             return components.joined(separator: " ")
         case .bankAccount(let bankAccount):
-            return "\(bankAccount.name) \(paymentSheetLabel)"
+            return bankAccount.displayName(with: nickname)
         case .unparsable:
             return nil
         }

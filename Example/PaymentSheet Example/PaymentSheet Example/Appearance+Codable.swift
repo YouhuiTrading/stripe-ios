@@ -9,6 +9,7 @@
 
 import Foundation
 @_spi(AppearanceAPIAdditionsPreview) import StripePaymentSheet
+@_spi(STP) import StripeUICore
 import UIKit
 
 // Helper for encoding/decoding UIColor
@@ -18,26 +19,89 @@ private struct CodableUIColor: Codable {
     let blue: CGFloat
     let alpha: CGFloat
 
+    // Optional dark mode variant
+    let darkRed: CGFloat?
+    let darkGreen: CGFloat?
+    let darkBlue: CGFloat?
+    let darkAlpha: CGFloat?
+
     init(color: UIColor) {
+        // Extract light mode color
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        color.getRed(&r, green: &g, blue: &b, alpha: &a)
+        color.resolvedColor(with: UITraitCollection(userInterfaceStyle: .light)).getRed(&r, green: &g, blue: &b, alpha: &a)
         self.red = r
         self.green = g
         self.blue = b
         self.alpha = a
+
+        // Extract dark mode color if different
+        var darkR: CGFloat = 0, darkG: CGFloat = 0, darkB: CGFloat = 0, darkA: CGFloat = 0
+        color.resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark)).getRed(&darkR, green: &darkG, blue: &darkB, alpha: &darkA)
+
+        // Only store dark mode values if they're different from light mode
+        if darkR != r || darkG != g || darkB != b || darkA != a {
+            self.darkRed = darkR
+            self.darkGreen = darkG
+            self.darkBlue = darkB
+            self.darkAlpha = darkA
+        } else {
+            self.darkRed = nil
+            self.darkGreen = nil
+            self.darkBlue = nil
+            self.darkAlpha = nil
+        }
     }
 
     var uiColor: UIColor {
-        return UIColor(red: red, green: green, blue: blue, alpha: alpha)
+        let lightColor = UIColor(red: red, green: green, blue: blue, alpha: alpha)
+
+        if let darkRed, let darkGreen, let darkBlue, let darkAlpha {
+            let darkColor = UIColor(red: darkRed, green: darkGreen, blue: darkBlue, alpha: darkAlpha)
+            return .dynamic(light: lightColor, dark: darkColor)
+        } else {
+            return lightColor
+        }
     }
 }
+private struct CodableNavigationBarStyle: Codable {
+    let navigationBarStyle: PaymentSheet.Appearance.NavigationBarStyle
+    init(_ navigationBarStyle: PaymentSheet.Appearance.NavigationBarStyle) {
+        self.navigationBarStyle = navigationBarStyle
+    }
 
-extension PaymentSheet.Appearance: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case style
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let styleString = try container.decode(String.self, forKey: .style)
+
+        if styleString == "glass", #available(iOS 26, *) {
+            navigationBarStyle = .glass
+        } else {
+            navigationBarStyle = .plain
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        if case .plain = navigationBarStyle {
+            try container.encode("plain", forKey: .style)
+        } else if #available(iOS 26, *), .glass == navigationBarStyle {
+            try container.encode("glass", forKey: .style)
+        }
+    }
+
+}
+
+extension PaymentSheet.Appearance: @retroactive Codable {
     private enum CodingKeys: String, CodingKey {
         // Top-level properties
         case cornerRadius, borderWidth, selectedBorderWidth, sheetCornerRadius
         case sectionSpacing, verticalModeRowPadding, iconStyle
-        case textFieldInsets, formInsets
+        case textFieldInsets, formInsets, navigationBarStyle
 
         // Font properties
         case fontSizeScaleFactor, fontBaseDescriptor, fontCustomHeadlineDescriptor
@@ -72,13 +136,15 @@ extension PaymentSheet.Appearance: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         // Top-level properties
-        self.cornerRadius = try container.decode(CGFloat.self, forKey: .cornerRadius)
+        self.cornerRadius = try container.decodeIfPresent(CGFloat.self, forKey: .cornerRadius)
         self.borderWidth = try container.decode(CGFloat.self, forKey: .borderWidth)
         self.selectedBorderWidth = try container.decodeIfPresent(CGFloat.self, forKey: .selectedBorderWidth)
         self.sheetCornerRadius = try container.decode(CGFloat.self, forKey: .sheetCornerRadius)
         self.textFieldInsets = try container.decode(NSDirectionalEdgeInsets.self, forKey: .textFieldInsets)
         self.formInsets = try container.decode(NSDirectionalEdgeInsets.self, forKey: .formInsets)
         self.sectionSpacing = try container.decode(CGFloat.self, forKey: .sectionSpacing)
+        self.navigationBarStyle = try container.decode(CodableNavigationBarStyle.self, forKey: .navigationBarStyle).navigationBarStyle
+
         self.iconStyle = try {
             switch try container.decode(String.self, forKey: .iconStyle) {
             case "filled": .filled
@@ -221,6 +287,7 @@ extension PaymentSheet.Appearance: Codable {
         try container.encode(sheetCornerRadius, forKey: .sheetCornerRadius)
         try container.encode(sectionSpacing, forKey: .sectionSpacing)
         try container.encode(verticalModeRowPadding, forKey: .verticalModeRowPadding)
+        try container.encode(CodableNavigationBarStyle(navigationBarStyle), forKey: .navigationBarStyle)
 
         let iconStyleString =
         switch iconStyle {

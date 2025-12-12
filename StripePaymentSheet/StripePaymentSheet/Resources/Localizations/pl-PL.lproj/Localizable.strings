@@ -16,8 +16,6 @@
 
 "Add your payment information" = "Dodaj informacje o płatności";
 
-"Agree and continue" = "Zaakceptuj i kontynuuj";
-
 "Approve payment" = "Zatwierdź płatność";
 
 "Are you sure you want to remove this card?" = "Czy na pewno chcesz usunąć tę kartę?";
@@ -82,6 +80,8 @@
 
 "By saving your bank account for %@ you agree to authorize payments pursuant to <terms>these terms</terms>." = "Zapisując swoje konto bankowe dla %@, zgadzasz się na autoryzowanie płatności zgodnie z <terms>tymi warunkami</terms>.";
 
+"By submitting your order to %@ and %@, you agree to save your information with %@ for future purchases, and agree to authorize payments pursuant to <terms>these terms</terms>." = "Przesyłając zamówienie do %1$@ i %2$@, zgadzasz się na zachowanie informacji przez %3$@ do wykorzystania przy przyszłych zakupach oraz na autoryzowanie płatności zgodnie z <terms>tymi warunkami</terms>.";
+
 "By submitting your order to %@ you agree to authorize payments pursuant to <terms>these terms</terms>." = "Przesyłając zamówienie do %@, wyrażasz zgodę na autoryzację płatności zgodnie z <terms>niniejszymi warunkami</terms>.";
 
 "CPF/CPNJ" = "CPF/CPNJ";
@@ -100,8 +100,6 @@
 
 "Confirm" = "Potwierdź";
 
-"Confirm it's you" = "Potwierdź, że to Ty";
-
 "Confirm payment details" = "Potwierdź szczegóły płatności";
 
 "Confirm the payment in your bank or payment app within %@ to complete the purchase." = "Potwierdź płatność w banku lub aplikacji bankowej w ciągu %@, aby sfinalizować zakup.";
@@ -109,6 +107,8 @@
 "Confirm the payment in your bank's app within %@ to complete the purchase." = "Potwierdź płatność w aplikacji bankowej w ciągu %@, aby sfinalizować zakup.";
 
 "Confirm your CVC" = "Potwierdź CVC";
+
+"Confirm your information" = "Potwierdź swoje dane";
 
 "Contact information" = "Dane kontaktowe";
 
@@ -122,19 +122,15 @@
 
 "Default payment method" = "Domyślna metoda płatności";
 
+"Did you mean %@? %@." = "Czy chodziło Ci o: %1$@? %2$@.";
+
 "EPS Bank" = "Bank EPS";
 
 "Enter address manually" = "Wprowadź adres ręcznie";
 
-"Enter the code sent to %@." = "Wprowadź kod wysłany na %s.";
-
 "FPX Bank" = "FPX Bank";
 
-"Failed to connect" = "Nie udało się połączyć";
-
 "Fast, secure checkout" = "Szybka i bezpieczna finalizacja transakcji";
-
-"For security, please re-enter your card’s security code." = "Ze względów bezpieczeństwa wprowadź ponownie kod bezpieczeństwa Twojej karty.";
 
 "Get %@ back when you pay for the first time with your bank. <terms>See terms</terms>" = "Uzyskaj zwrot %@, gdy płacisz po raz pierwszy poprzez bank. <terms>Zobacz warunki</terms>";
 
@@ -143,6 +139,8 @@
 "I understand that Stripe will be collecting Direct Debits on behalf of %@ and confirm that I am the account holder and the only person required to authorise debits from this account." = "Rozumiem, że Stripe będzie pobierać polecenia zapłaty w imieniu firmy %@ i potwierdzam, że jestem posiadaczem konta i jedyną osobą wymaganą do autoryzowania poleceń zapłaty z tego konta.";
 
 "IBAN" = "IBAN";
+
+"Last 4 digits of SSN" = "Ostatnie 4 cyfry numeru SSN";
 
 "Log in or sign up" = "Zaloguj się lub zarejestruj";
 
@@ -224,8 +222,6 @@
 
 "Remove linked account" = "Usuń podłączone konto";
 
-"Resend code" = "Wyślij kod ponownie";
-
 "SEPA debit details cannot be changed." = "Nie można zmienić szczegółów polecenia zapłaty SEPA.";
 
 "Save" = "Zapisz";
@@ -284,8 +280,6 @@
 
 "The provided verification code is incorrect." = "Podany kod weryfikacyjny jest nieprawidłowy.";
 
-"This card has expired. Update your card info or choose a different payment method." = "Termin ważności tej karty minął. Zaktualizuj informacje o karcie lub wybierz inną metodę płatności.";
-
 "This is your default" = "To Twoje ustawienie domyślne";
 
 "This payment method will be removed but will remain available for %@ subscriptions." = "Ta metoda płatności zostanie usunięta, ale pozostanie dostępna dla %@ subskrypcji.";
@@ -301,6 +295,8 @@
 "Use billing address for shipping" = "Użyj adresu rozliczeniowego do dostawy";
 
 "View more" = "Wyświetl więcej";
+
+"Yes, update" = "Tak, aktualizuj";
 
 "Your IBAN should start with a two-letter country code." = "IBAN powinien się zaczynać od dwuliterowego kodu kraju.";
 

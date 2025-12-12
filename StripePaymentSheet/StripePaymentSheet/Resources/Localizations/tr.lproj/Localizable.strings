@@ -16,8 +16,6 @@
 
 "Add your payment information" = "Ödeme bilgilerinizi ekleyin";
 
-"Agree and continue" = "Kabul et ve devam et";
-
 "Approve payment" = "Ödemeyi onaylayın";
 
 "Are you sure you want to remove this card?" = "Bu kartı kaldırmak istediğinizden emin misiniz?";
@@ -82,6 +80,8 @@
 
 "By saving your bank account for %@ you agree to authorize payments pursuant to <terms>these terms</terms>." = "%@ için banka hesabınızı kaydettiğinizde ödemeleri <terms>bu koşullara</terms> göre yetkilendirmeyi kabul etmiş olursunuz.";
 
+"By submitting your order to %@ and %@, you agree to save your information with %@ for future purchases, and agree to authorize payments pursuant to <terms>these terms</terms>." = "Siparişinizi %1$@ ve %2$@'e göndererek, bilgilerinizi gelecekteki satın alımlar için %3$@ ile kaydetmeyi ve <terms>bu koşullar</terms> uyarınca ödemeleri yetkilendirmeyi kabul etmiş olursunuz.";
+
 "By submitting your order to %@ you agree to authorize payments pursuant to <terms>these terms</terms>." = "Siparişinizi %@’ye göndererek ödemeleri <terms>bu koşullara</terms> uygun olarak yetkilendirmeyi kabul etmiş olursunuz.";
 
 "CPF/CPNJ" = "CPF/CPNJ";
@@ -100,8 +100,6 @@
 
 "Confirm" = "Onayla";
 
-"Confirm it's you" = "Siz olduğunuzu teyit edin";
-
 "Confirm payment details" = "Ödeme bilgilerini onayla";
 
 "Confirm the payment in your bank or payment app within %@ to complete the purchase." = "%@ içinde banka veya ödeme uygulamanızla ödemeyi onaylayarak satın almayı tamamlayın.";
@@ -109,6 +107,8 @@
 "Confirm the payment in your bank's app within %@ to complete the purchase." = "%@ içinde banka uygulamanızda ödemeyi onaylayarak satın almayı tamamlayın.";
 
 "Confirm your CVC" = "CVC kodunuzu onaylayın";
+
+"Confirm your information" = "Bilgilerinizi onaylayın";
 
 "Contact information" = "İletişim bilgileri";
 
@@ -122,19 +122,15 @@
 
 "Default payment method" = "Varsayılan ödeme yöntemi";
 
+"Did you mean %@? %@." = "%1$@ mi demek istediniz? %2$@.";
+
 "EPS Bank" = "EPS Bank";
 
 "Enter address manually" = "Adresi manuel olarak girin";
 
-"Enter the code sent to %@." = "%s yoluyla gönderilen kodu girin.";
-
 "FPX Bank" = "FPX Bank";
 
-"Failed to connect" = "Bağlantı başarısız.";
-
 "Fast, secure checkout" = "Hızlı, güvenli ödeme";
-
-"For security, please re-enter your card’s security code." = "Güvenliğinizin sağlanması için lütfen kartınızın güvenlik kodunu tekrar girin.";
 
 "Get %@ back when you pay for the first time with your bank. <terms>See terms</terms>" = "Bankanızla ilk kez ödeme yaptığınızda %@ tutarını geri alın. <terms>Şartları görün</terms>";
 
@@ -143,6 +139,8 @@
 "I understand that Stripe will be collecting Direct Debits on behalf of %@ and confirm that I am the account holder and the only person required to authorise debits from this account." = "Stripe'ın %@ adına Otomatik Ödeme alacağını anlıyorum. Hesap sahibi ve bu hesaptan ödemeleri yetkilendirmek için gereken tek kişi olduğumu onaylıyorum.";
 
 "IBAN" = "IBAN";
+
+"Last 4 digits of SSN" = "SSN'nin son 4 hanesi";
 
 "Log in or sign up" = "Oturum açın veya kaydolun";
 
@@ -224,8 +222,6 @@
 
 "Remove linked account" = "Bağlı hesabı kaldır";
 
-"Resend code" = "Kodu tekrar gönder";
-
 "SEPA debit details cannot be changed." = "SEPA bankamatik ayrıntıları değiştirilemiyor.";
 
 "Save" = "Kaydet";
@@ -284,8 +280,6 @@
 
 "The provided verification code is incorrect." = "Sağlanan doğrulama kodu yanlış.";
 
-"This card has expired. Update your card info or choose a different payment method." = "Bu kartın süresi dolmuş. Kart bilgileirnizi güncelleyin veya farklı bir ödeme yöntemi seçin.";
-
 "This is your default" = "Bu varsayılan ödeme yönteminizdir";
 
 "This payment method will be removed but will remain available for %@ subscriptions." = "Bu ödeme yöntemi kaldırılacak ancak %@ abonelikleri için kullanılabilir kalacaktır.";
@@ -301,6 +295,8 @@
 "Use billing address for shipping" = "Gönderim için fatura adresini kullanın";
 
 "View more" = "Daha fazla göster";
+
+"Yes, update" = "Evet, güncelle";
 
 "Your IBAN should start with a two-letter country code." = "IBAN numaranız iki harfli bir ülke koduyla başlamalıdır.";
 

@@ -16,8 +16,6 @@
 
 "Add your payment information" = "Lägg till betalningsinformation";
 
-"Agree and continue" = "Godkänn och fortsätt";
-
 "Approve payment" = "Godkänn betalning";
 
 "Are you sure you want to remove this card?" = "Är du säker på att du vill ta bort kortet?";
@@ -82,6 +80,8 @@
 
 "By saving your bank account for %@ you agree to authorize payments pursuant to <terms>these terms</terms>." = "Genom att spara ditt bankkonto för %@ samtycker du till att godkänna betalningar i enlighet med <terms>dessa villkor</terms>.";
 
+"By submitting your order to %@ and %@, you agree to save your information with %@ for future purchases, and agree to authorize payments pursuant to <terms>these terms</terms>." = "Genom att skicka din beställning till %1$@ och %2$@ samtycker du till att spara din information hos %3$@ för framtida köp och godkänner auktorisering av betalningar i enlighet med <terms>dessa villkor</terms>.";
+
 "By submitting your order to %@ you agree to authorize payments pursuant to <terms>these terms</terms>." = "Genom att skicka din beställning till %@ samtycker du till att godkänna betalningar i enlighet med <terms>dessa villkor</terms>.";
 
 "CPF/CPNJ" = "CPF/CPNJ";
@@ -100,8 +100,6 @@
 
 "Confirm" = "Bekräfta";
 
-"Confirm it's you" = "Bekräfta att det är du";
-
 "Confirm payment details" = "Bekräfta betalningsuppgifter";
 
 "Confirm the payment in your bank or payment app within %@ to complete the purchase." = "Bekräfta betalningen i din bankapp eller betalningsapp inom %@ för att slutföra köpet.";
@@ -109,6 +107,8 @@
 "Confirm the payment in your bank's app within %@ to complete the purchase." = "Bekräfta betalningen i din banks app inom %@ för att slutföra köpet.";
 
 "Confirm your CVC" = "Bekräfta din CVC-kod";
+
+"Confirm your information" = "Bekräfta informationen";
 
 "Contact information" = "Kontaktinformation";
 
@@ -122,19 +122,15 @@
 
 "Default payment method" = "Standardmetod för betalning";
 
+"Did you mean %@? %@." = "Menade du %1$@? %2$@.";
+
 "EPS Bank" = "EPS Bank";
 
 "Enter address manually" = "Ange adress manuellt";
 
-"Enter the code sent to %@." = "Ange koden som skickades till %s.";
-
 "FPX Bank" = "FPX Bank";
 
-"Failed to connect" = "Det gick inte att ansluta";
-
 "Fast, secure checkout" = "Snabb och säker kassabetalning";
-
-"For security, please re-enter your card’s security code." = "Ange säkerhetskoden för ditt kort igen av säkerhetsskäl.";
 
 "Get %@ back when you pay for the first time with your bank. <terms>See terms</terms>" = "Få %@ tillbaka när du betalar för första gången med din bank. <terms>Se villkor</terms>";
 
@@ -143,6 +139,8 @@
 "I understand that Stripe will be collecting Direct Debits on behalf of %@ and confirm that I am the account holder and the only person required to authorise debits from this account." = "Jag är införstådd med att Stripe samlar in autogireringar på uppdrag av %@ och bekräftar att jag är kontoinnehavaren och den enda person som krävs för att godkänna debiteringar från detta konto.";
 
 "IBAN" = "IBAN";
+
+"Last 4 digits of SSN" = "Sista 4 siffrorna i SSN";
 
 "Log in or sign up" = "Logga in eller registrera dig";
 
@@ -224,8 +222,6 @@
 
 "Remove linked account" = "Ta bort länkat konto";
 
-"Resend code" = "Skicka koden igen";
-
 "SEPA debit details cannot be changed." = "Uppgifter för SEPA-debitering kan inte ändras.";
 
 "Save" = "Spara";
@@ -284,8 +280,6 @@
 
 "The provided verification code is incorrect." = "Den angivna verifieringskoden är felaktig.";
 
-"This card has expired. Update your card info or choose a different payment method." = "Detta kort har löpt ut. Uppdatera kortinformationen eller använd en annan betalningsmetod.";
-
 "This is your default" = "Detta är din standardbetalningsmetod";
 
 "This payment method will be removed but will remain available for %@ subscriptions." = "Den här betalningsmetoden kommer att tas bort, men förblir tillgänglig för %@ abonnemang.";
@@ -301,6 +295,8 @@
 "Use billing address for shipping" = "Använd faktureringsadress för leverans";
 
 "View more" = "Visa mer";
+
+"Yes, update" = "Ja, uppdatera";
 
 "Your IBAN should start with a two-letter country code." = "Ditt IBAN ska börja med en landskod (två bokstäver).";
 

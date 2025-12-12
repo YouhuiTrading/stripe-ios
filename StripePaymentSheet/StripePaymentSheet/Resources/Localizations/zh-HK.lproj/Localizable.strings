@@ -16,8 +16,6 @@
 
 "Add your payment information" = "添加您的支付資訊";
 
-"Agree and continue" = "同意並繼續";
-
 "Approve payment" = "批准付款";
 
 "Are you sure you want to remove this card?" = "您確定要移除此卡嗎？";
@@ -82,6 +80,8 @@
 
 "By saving your bank account for %@ you agree to authorize payments pursuant to <terms>these terms</terms>." = "儲存您的 %@ 銀行賬戶即表示您同意按照<terms>這些條款</terms>授權付款。";
 
+"By submitting your order to %@ and %@, you agree to save your information with %@ for future purchases, and agree to authorize payments pursuant to <terms>these terms</terms>." = "向 %1$@ 和 %2$@ 提交訂單，即表示您同意使用 %3$@ 儲存您的資訊以供日後購買之用，並同意依據<terms>這些條款</terms>授權支付。";
+
 "By submitting your order to %@ you agree to authorize payments pursuant to <terms>these terms</terms>." = "將訂單提交至 %@ 即表示您同意根據<terms>這些條款</terms>授權付款。";
 
 "CPF/CPNJ" = "CPF/CPNJ";
@@ -92,15 +92,13 @@
 
 "Change" = "更改";
 
-"Choose a payment method" = "選擇一個支付方式";
+"Choose a payment method" = "選擇支付方式";
 
 "Close card scanner" = "關閉銀行卡掃描器";
 
 "Code sent" = "驗證碼已發送";
 
 "Confirm" = "確定";
-
-"Confirm it's you" = "確認是您本人";
 
 "Confirm payment details" = "確認支付詳情";
 
@@ -109,6 +107,8 @@
 "Confirm the payment in your bank's app within %@ to complete the purchase." = "%@内在您的銀行應用中確認付款，完成購物。";
 
 "Confirm your CVC" = "請確認您的 CVC";
+
+"Confirm your information" = "確認您的資訊";
 
 "Contact information" = "聯絡資訊";
 
@@ -122,19 +122,15 @@
 
 "Default payment method" = "預設支付方式";
 
+"Did you mean %@? %@." = "您的意思是 %1$@ 嗎？%2$@。";
+
 "EPS Bank" = "EPS 銀行";
 
 "Enter address manually" = "手動輸入地址";
 
-"Enter the code sent to %@." = "請輸入發送至 %s 的驗證碼。";
-
 "FPX Bank" = "FPX Bank";
 
-"Failed to connect" = "連接失敗";
-
 "Fast, secure checkout" = "快速、安全的結帳";
-
-"For security, please re-enter your card’s security code." = "出於安全原因，請重新輸入您的銀行卡的安全碼。";
 
 "Get %@ back when you pay for the first time with your bank. <terms>See terms</terms>" = "透過您的銀行首次支付時獲得 %@ 的返現。<terms>查看條款</terms>";
 
@@ -143,6 +139,8 @@
 "I understand that Stripe will be collecting Direct Debits on behalf of %@ and confirm that I am the account holder and the only person required to authorise debits from this account." = "我理解 Stripe 將代表 %@ 收取直接扣款，且確認我是該賬戶持有人，且是唯一一個需要授權該賬戶扣款的人。";
 
 "IBAN" = "IBAN";
+
+"Last 4 digits of SSN" = "SSN 的最後 4 位數字";
 
 "Log in or sign up" = "登入或註冊";
 
@@ -212,7 +210,7 @@
 
 "Please choose a valid payment method." = "請選擇一個有效的支付方式。";
 
-"Please go back and select another payment method" = "請返回並選擇另一個支付方式。";
+"Please go back and select another payment method" = "請返回並選擇另一種支付方式";
 
 "Point the camera at your card." = "將相機正對銀行卡。";
 
@@ -223,8 +221,6 @@
 "Remove card?" = "移除卡？";
 
 "Remove linked account" = "移除關聯賬戶";
-
-"Resend code" = "重新發送驗證碼";
 
 "SEPA debit details cannot be changed." = "無法更改 SEPA 借記詳情。";
 
@@ -284,8 +280,6 @@
 
 "The provided verification code is incorrect." = "提供的驗證碼不正確。";
 
-"This card has expired. Update your card info or choose a different payment method." = "該卡已過期。更新您的銀行卡資訊或選擇另一支付方式。";
-
 "This is your default" = "這是您的預設支付方式";
 
 "This payment method will be removed but will remain available for %@ subscriptions." = "此支付方式將被移除，但仍適用於 %@ 項訂閱。";
@@ -301,6 +295,8 @@
 "Use billing address for shipping" = "使用帳單地址作為送貨地址";
 
 "View more" = "查看更多";
+
+"Yes, update" = "是，更新";
 
 "Your IBAN should start with a two-letter country code." = "您的 IBAN 應以兩個字母的國家代碼開頭。";
 

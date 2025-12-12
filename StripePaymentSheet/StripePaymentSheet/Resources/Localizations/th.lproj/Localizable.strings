@@ -16,8 +16,6 @@
 
 "Add your payment information" = "เพิ่มข้อมูลการชำระเงิน";
 
-"Agree and continue" = "ยอมรับและดำเนินการต่อ";
-
 "Approve payment" = "อนุมัติการชำระเงิน";
 
 "Are you sure you want to remove this card?" = "แน่ใจไหมว่าต้องการนำบัตรใบนี้ออก";
@@ -82,6 +80,8 @@
 
 "By saving your bank account for %@ you agree to authorize payments pursuant to <terms>these terms</terms>." = "การบันทึกบัญชีธนาคารของ %@ หมายความว่าคุณตกลงที่จะอนุมัติการชำระเงินซึ่งดำเนินการตาม<terms>ข้อกำหนดเหล่านี้</terms>";
 
+"By submitting your order to %@ and %@, you agree to save your information with %@ for future purchases, and agree to authorize payments pursuant to <terms>these terms</terms>." = "การส่งคำสั่งซื้อของคุณไปยัง %1$@ และ %2$@ หมายความว่าคุณตกลงที่จะบันทึกข้อมูลไว้กับ %3$@ สำหรับการซื้อในอนาคต และตกลงที่จะอนุมัติการชำระเงินตาม<terms>ข้อกำหนดเหล่านี้</terms>";
+
 "By submitting your order to %@ you agree to authorize payments pursuant to <terms>these terms</terms>." = "การส่งคำสั่งซื้อให้ %@ หมายความว่าคุณตกลงที่จะอนุมัติการชำระเงินตาม<terms>ข้อกำหนดเหล่านี้</terms>";
 
 "CPF/CPNJ" = "AU Direct Debit";
@@ -100,8 +100,6 @@
 
 "Confirm" = "ยืนยัน";
 
-"Confirm it's you" = "ยืนยันว่าเป็นคุณจริงๆ";
-
 "Confirm payment details" = "ยืนยันรายละเอียดการชำระเงิน";
 
 "Confirm the payment in your bank or payment app within %@ to complete the purchase." = "ยืนยันการชำระเงินในแอปของธนาคารหรือแอปชำระเงินภายใน %@ เพื่อชำระเงินให้เสร็จสิ้น";
@@ -109,6 +107,8 @@
 "Confirm the payment in your bank's app within %@ to complete the purchase." = "ยืนยันการชำระเงินในแอปของธนาคารภายใน %@ เพื่อชำระเงินให้เสร็จสิ้น";
 
 "Confirm your CVC" = "ยืนยัน CVC ของคุณ";
+
+"Confirm your information" = "ยืนยันข้อมูลของคุณ";
 
 "Contact information" = "ข้อมูลติดต่อ";
 
@@ -122,19 +122,15 @@
 
 "Default payment method" = "วิธีการชำระเงินตามค่าเริ่มต้น";
 
+"Did you mean %@? %@." = "คุณหมายถึง %1$@ ใช่หรือไม่ %2$@";
+
 "EPS Bank" = "EPS Bank";
 
 "Enter address manually" = "ป้อนที่อยู่ด้วยตนเอง";
 
-"Enter the code sent to %@." = "ป้อนรหัสที่เราส่งให้ที่ %s";
-
 "FPX Bank" = "FPX Bank";
 
-"Failed to connect" = "เชื่อมต่อไม่สำเร็จ";
-
 "Fast, secure checkout" = "การชำระเงินที่รวดเร็วและปลอดภัย";
-
-"For security, please re-enter your card’s security code." = "โปรดป้อนรหัสรักษาความปลอดภัยของบัตรอีกครั้งเพื่อความปลอดภัย";
 
 "Get %@ back when you pay for the first time with your bank. <terms>See terms</terms>" = "รับคืน %@ เมื่อชำระครั้งแรกผ่านธนาคาร <terms>ดูข้อกำหนด</terms>";
 
@@ -143,6 +139,8 @@
 "I understand that Stripe will be collecting Direct Debits on behalf of %@ and confirm that I am the account holder and the only person required to authorise debits from this account." = "ฉันเข้าใจว่า Stripe จะดำเนินการหักบัญชีอัตโนมัติในนามของ %@ และยืนยันว่าฉันเป็นเจ้าของบัญชีและเป็นบุคคลเดียวเท่านั้นที่อนุญาตให้หักเงินจากบัญชีนี้ได้";
 
 "IBAN" = "IBAN";
+
+"Last 4 digits of SSN" = "ตัวเลข 4 หลักสุดท้ายของ SSN";
 
 "Log in or sign up" = "เข้าสู่ระบบหรือลงทะเบียน";
 
@@ -224,8 +222,6 @@
 
 "Remove linked account" = "นำบัญชีที่ลิงก์ไว้ออก";
 
-"Resend code" = "ส่งรหัสอีกครั้ง";
-
 "SEPA debit details cannot be changed." = "เปลี่ยนแปลงรายละเอียดการหักบัญชีอัตโนมัติแบบ SEPA ไม่ได้";
 
 "Save" = "บันทึก";
@@ -284,8 +280,6 @@
 
 "The provided verification code is incorrect." = "รหัสยืนยันที่ป้อนไม่ถูกต้อง";
 
-"This card has expired. Update your card info or choose a different payment method." = "บัตรใบนี้หมดอายุแล้ว โปรดอัปเดตข้อมูลบัตรหรือเลือกวิธีการชำระเงินอื่น";
-
 "This is your default" = "นี่คือค่าเริ่มต้นของคุณ";
 
 "This payment method will be removed but will remain available for %@ subscriptions." = "วิธีการชำระเงินนี้จะถูกนำออกไปแต่จะยังคงใช้ได้สำหรับการชำระเงินตามรอบบิล %@";
@@ -301,6 +295,8 @@
 "Use billing address for shipping" = "ใช้ที่อยู่เรียกเก็บเงินสำหรับการจัดส่ง";
 
 "View more" = "ดูเพิ่มเติม";
+
+"Yes, update" = "ใช่ อัปเดต";
 
 "Your IBAN should start with a two-letter country code." = "IBAN ควรเริ่มต้นด้วยรหัสประเทศ 2 ตัวอักษร";
 

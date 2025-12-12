@@ -739,55 +739,23 @@ class PaymentSheetFormFactoryTest: XCTestCase {
         let factory = PaymentSheetFormFactory(
             intent: ._testValue(), elementsSession: ._testCardValue(),
             configuration: .paymentElement(configuration),
-            paymentMethod: .stripe(.sofort)
+            paymentMethod: .stripe(.iDEAL)
         )
         let spec = FormSpec(
-            type: "sofort",
+            type: "ideal",
             async: false,
             fields: [.country(.init(apiPath: nil, allowedCountryCodes: ["AT", "BE"]))],
             selectorIcon: nil
         )
         let formElement = factory.makeFormElementFromSpec(spec: spec)
-        let params = IntentConfirmParams(type: .stripe(.sofort))
+        let params = IntentConfirmParams(type: .stripe(.iDEAL))
 
         let updatedParams = formElement.updateParams(params: params)
 
         XCTAssertEqual(updatedParams?.paymentMethodParams.billingDetails?.address?.country, "AT")
         XCTAssert(updatedParams?.paymentMethodParams.additionalAPIParameters.isEmpty ?? false)
-        XCTAssertEqual(updatedParams?.paymentMethodParams.rawTypeString, "sofort")
-        XCTAssertEqual(updatedParams?.paymentMethodParams.type, .sofort)
-    }
-
-    func testMakeFormElement_Country_DefinedAPIPath_forSofort() {
-        let configuration = PaymentSheet.Configuration()
-        let factory = PaymentSheetFormFactory(
-            intent: ._testValue(), elementsSession: ._testCardValue(),
-            configuration: .paymentElement(configuration),
-            paymentMethod: .stripe(.sofort)
-        )
-        let spec = FormSpec(
-            type: "sofort",
-            async: false,
-            fields: [
-                .country(
-                    .init(apiPath: ["v1": "sofort[country]"], allowedCountryCodes: ["AT", "BE"])
-                ),
-            ],
-            selectorIcon: nil
-        )
-        let formElement = factory.makeFormElementFromSpec(spec: spec)
-        let params = IntentConfirmParams(type: .stripe(.sofort))
-
-        let updatedParams = formElement.updateParams(params: params)
-
-        XCTAssertNil(updatedParams?.paymentMethodParams.sofort?.country)
-        XCTAssertEqual(
-            updatedParams?.paymentMethodParams.additionalAPIParameters["sofort[country]"]
-                as! String,
-            "AT"
-        )
-        XCTAssertEqual(updatedParams?.paymentMethodParams.rawTypeString, "sofort")
-        XCTAssertEqual(updatedParams?.paymentMethodParams.type, .sofort)
+        XCTAssertEqual(updatedParams?.paymentMethodParams.rawTypeString, "ideal")
+        XCTAssertEqual(updatedParams?.paymentMethodParams.type, .iDEAL)
     }
 
     func testMakeFormElement_Country() {
@@ -795,69 +763,30 @@ class PaymentSheetFormFactoryTest: XCTestCase {
         let factory = PaymentSheetFormFactory(
             intent: ._testValue(), elementsSession: ._testCardValue(),
             configuration: .paymentElement(configuration),
-            paymentMethod: .stripe(.sofort)
+            paymentMethod: .stripe(.iDEAL)
         )
         let country = factory.makeCountry(countryCodes: ["AT", "BE"], apiPath: nil)
         (country as! PaymentMethodElementWrapper<DropdownFieldElement>).element.select(index: 1) // select a different index than the default of 0
 
-        let params = IntentConfirmParams(type: .stripe(.sofort))
+        let params = IntentConfirmParams(type: .stripe(.iDEAL))
         let updatedParams = country.updateParams(params: params)
 
         XCTAssertEqual(updatedParams?.paymentMethodParams.billingDetails?.address?.country, "BE")
         XCTAssert(updatedParams?.paymentMethodParams.additionalAPIParameters.isEmpty ?? false)
-        XCTAssertEqual(updatedParams?.paymentMethodParams.rawTypeString, "sofort")
-        XCTAssertEqual(updatedParams?.paymentMethodParams.type, .sofort)
+        XCTAssertEqual(updatedParams?.paymentMethodParams.rawTypeString, "ideal")
+        XCTAssertEqual(updatedParams?.paymentMethodParams.type, .iDEAL)
 
         // Using the params as previous customer input...
         let country_with_previous_input = PaymentSheetFormFactory(
             intent: ._testValue(), elementsSession: ._testCardValue(),
             configuration: .paymentElement(configuration),
-            paymentMethod: .stripe(.sofort),
+            paymentMethod: .stripe(.iDEAL),
             previousCustomerInput: updatedParams
         ).makeCountry(countryCodes: ["AT", "BE"], apiPath: nil)
         // ...should result in a valid, filled out element
         XCTAssert(country_with_previous_input.validationState == .valid)
-        let updatedParams_with_previous_input = country_with_previous_input.updateParams(params: .init(type: .stripe(.sofort)))
+        let updatedParams_with_previous_input = country_with_previous_input.updateParams(params: .init(type: .stripe(.iDEAL)))
         XCTAssertEqual(updatedParams_with_previous_input?.paymentMethodParams.billingDetails?.address?.country, "BE")
-    }
-
-    func testMakeFormElement_Country_withAPIPath() {
-        let configuration = PaymentSheet.Configuration()
-        func makeCountry(previousCustomerInput: IntentConfirmParams?) -> PaymentMethodElement {
-            let factory = PaymentSheetFormFactory(
-                intent: ._testValue(),
-                elementsSession: ._testCardValue(),
-                configuration: .paymentElement(configuration),
-                paymentMethod: .stripe(.sofort),
-                previousCustomerInput: previousCustomerInput
-            )
-            let country = factory.makeCountry(countryCodes: ["AT", "BE"], apiPath: "sofort[country]")
-            return country
-        }
-        let country = makeCountry(previousCustomerInput: nil)
-        (country as! PaymentMethodElementWrapper<DropdownFieldElement>).element.select(index: 1) // select a different index than the default of 0
-
-        let params = IntentConfirmParams(type: .stripe(.sofort))
-        let updatedParams = country.updateParams(params: params)
-
-        XCTAssertNil(updatedParams?.paymentMethodParams.sofort?.country)
-        XCTAssertEqual(
-            updatedParams?.paymentMethodParams.additionalAPIParameters["sofort[country]"]
-                as! String,
-            "BE"
-        )
-        XCTAssertEqual(updatedParams?.paymentMethodParams.rawTypeString, "sofort")
-        XCTAssertEqual(updatedParams?.paymentMethodParams.type, .sofort)
-
-        // Using the params as previous customer input...
-        let country_with_previous_input = makeCountry(previousCustomerInput: updatedParams)
-        // ...should result in a valid, filled out element
-        XCTAssert(country_with_previous_input.validationState == .valid)
-        let updatedParams_with_previous_input = country_with_previous_input.updateParams(params: .init(type: .stripe(.sofort)))
-        XCTAssertEqual(
-            updatedParams_with_previous_input?.paymentMethodParams.additionalAPIParameters["sofort[country]"] as! String,
-            "BE"
-        )
     }
 
     func testMakeFormElement_Iban_UndefinedAPIPath() {
@@ -1809,7 +1738,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
         )
         STPAssertTestUtil.shouldSuppressNextSTPAlert = true
         _ = factory.make()
-        XCTAssertEqual(STPAssertTestUtil.lastAssertMessage, "Failed to get form spec for card_present!")
+        XCTAssertTrue(STPAssertTestUtil.lastAssertMessage.contains("missingFormSpec"))
         let errorAnalytic = analyticsClient._testLogHistory.first!
         XCTAssertEqual(errorAnalytic["event"] as? String, STPAnalyticEvent.unexpectedPaymentSheetFormFactoryError.rawValue)
         XCTAssertEqual(errorAnalytic["payment_method"] as? String, "card_present")
@@ -1841,7 +1770,8 @@ class PaymentSheetFormFactoryTest: XCTestCase {
                     session: nil,
                     publishableKey: nil,
                     displayablePaymentDetails: nil,
-                    useMobileEndpoints: false
+                    useMobileEndpoints: false,
+                    canSyncAttestationState: false
                 ),
                 accountService: LinkAccountService._testValue(),
                 analyticsHelper: ._testValue(analyticsClient: analyticsClient)
@@ -1887,7 +1817,8 @@ class PaymentSheetFormFactoryTest: XCTestCase {
                     session: nil,
                     publishableKey: nil,
                     displayablePaymentDetails: nil,
-                    useMobileEndpoints: false
+                    useMobileEndpoints: false,
+                    canSyncAttestationState: false
                 ),
                 accountService: LinkAccountService._testValue(),
                 analyticsHelper: ._testValue(analyticsClient: analyticsClient)
@@ -1931,7 +1862,8 @@ class PaymentSheetFormFactoryTest: XCTestCase {
                     session: nil,
                     publishableKey: nil,
                     displayablePaymentDetails: nil,
-                    useMobileEndpoints: false
+                    useMobileEndpoints: false,
+                    canSyncAttestationState: false
                 ),
                 accountService: LinkAccountService._testValue(),
                 analyticsHelper: ._testValue(analyticsClient: analyticsClient)
@@ -1975,7 +1907,8 @@ class PaymentSheetFormFactoryTest: XCTestCase {
                     session: nil,
                     publishableKey: nil,
                     displayablePaymentDetails: nil,
-                    useMobileEndpoints: false
+                    useMobileEndpoints: false,
+                    canSyncAttestationState: false
                 ),
                 accountService: LinkAccountService._testValue(),
                 analyticsHelper: ._testValue(analyticsClient: analyticsClient)
@@ -2143,6 +2076,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
         configuration.billingDetailsCollectionConfiguration.email = .automatic
         configuration.billingDetailsCollectionConfiguration.phone = .automatic
         configuration.billingDetailsCollectionConfiguration.address = .automatic
+        configuration.billingDetailsCollectionConfiguration.allowedCountries = ["US"]
 
         let factory = PaymentSheetFormFactory(
             intent: ._testPaymentIntent(paymentMethodTypes: [.card]),
@@ -2150,7 +2084,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
             configuration: .paymentElement(configuration),
             paymentMethod: .stripe(.card)
         )
-        guard let instantDebitsSection = factory.makeInstantDebits(countries: ["US"]) as? InstantDebitsPaymentMethodElement else {
+        guard let instantDebitsSection = factory.makeInstantDebits() as? InstantDebitsPaymentMethodElement else {
             return XCTFail("Expected InstantDebitsPaymentMethodElement from factory")
         }
 
@@ -2167,6 +2101,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
         configuration.billingDetailsCollectionConfiguration.email = .always
         configuration.billingDetailsCollectionConfiguration.phone = .always
         configuration.billingDetailsCollectionConfiguration.address = .full
+        configuration.billingDetailsCollectionConfiguration.allowedCountries = ["US"]
 
         let factory = PaymentSheetFormFactory(
             intent: ._testPaymentIntent(paymentMethodTypes: [.card]),
@@ -2174,7 +2109,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
             configuration: .paymentElement(configuration),
             paymentMethod: .stripe(.card)
         )
-        guard let instantDebitsSection = factory.makeInstantDebits(countries: ["US"]) as? InstantDebitsPaymentMethodElement else {
+        guard let instantDebitsSection = factory.makeInstantDebits() as? InstantDebitsPaymentMethodElement else {
             return XCTFail("Expected InstantDebitsPaymentMethodElement from factory")
         }
 
@@ -2191,6 +2126,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
         configuration.billingDetailsCollectionConfiguration.email = .never
         configuration.billingDetailsCollectionConfiguration.phone = .never
         configuration.billingDetailsCollectionConfiguration.address = .never
+        configuration.billingDetailsCollectionConfiguration.allowedCountries = ["US"]
 
         let factory = PaymentSheetFormFactory(
             intent: ._testPaymentIntent(paymentMethodTypes: [.card]),
@@ -2198,7 +2134,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
             configuration: .paymentElement(configuration),
             paymentMethod: .stripe(.card)
         )
-        guard let instantDebitsSection = factory.makeInstantDebits(countries: ["US"]) as? InstantDebitsPaymentMethodElement else {
+        guard let instantDebitsSection = factory.makeInstantDebits() as? InstantDebitsPaymentMethodElement else {
             return XCTFail("Expected InstantDebitsPaymentMethodElement from factory")
         }
 
@@ -2216,6 +2152,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
         configuration.billingDetailsCollectionConfiguration.email = .never
         configuration.billingDetailsCollectionConfiguration.phone = .never
         configuration.billingDetailsCollectionConfiguration.address = .never
+        configuration.billingDetailsCollectionConfiguration.allowedCountries = ["US"]
 
         configuration.defaultBillingDetails.email = "foo@bar.com"
 
@@ -2225,7 +2162,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
             configuration: .paymentElement(configuration),
             paymentMethod: .stripe(.card)
         )
-        guard let instantDebitsSection = factory.makeInstantDebits(countries: ["US"]) as? InstantDebitsPaymentMethodElement else {
+        guard let instantDebitsSection = factory.makeInstantDebits() as? InstantDebitsPaymentMethodElement else {
             return XCTFail("Expected InstantDebitsPaymentMethodElement from factory")
         }
 
@@ -2252,6 +2189,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
         configuration.defaultBillingDetails.phone = "+12345678900"
         configuration.defaultBillingDetails.address = defaultAddress
         configuration.billingDetailsCollectionConfiguration.attachDefaultsToPaymentMethod = false
+        configuration.billingDetailsCollectionConfiguration.allowedCountries = ["US"]
 
         let factory = PaymentSheetFormFactory(
             intent: ._testPaymentIntent(paymentMethodTypes: [.card]),
@@ -2259,7 +2197,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
             configuration: .paymentElement(configuration),
             paymentMethod: .stripe(.card)
         )
-        guard let instantDebitsSection = factory.makeInstantDebits(countries: ["US"]) as? InstantDebitsPaymentMethodElement else {
+        guard let instantDebitsSection = factory.makeInstantDebits() as? InstantDebitsPaymentMethodElement else {
             return XCTFail("Expected InstantDebitsPaymentMethodElement from factory")
         }
 
@@ -2285,6 +2223,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
         configuration.defaultBillingDetails.phone = "+12345678900"
         configuration.defaultBillingDetails.address = defaultAddress
         configuration.billingDetailsCollectionConfiguration.attachDefaultsToPaymentMethod = true
+        configuration.billingDetailsCollectionConfiguration.allowedCountries = ["US"]
 
         let factory = PaymentSheetFormFactory(
             intent: ._testPaymentIntent(paymentMethodTypes: [.card]),
@@ -2292,7 +2231,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
             configuration: .paymentElement(configuration),
             paymentMethod: .stripe(.card)
         )
-        guard let instantDebitsSection = factory.makeInstantDebits(countries: ["US"]) as? InstantDebitsPaymentMethodElement else {
+        guard let instantDebitsSection = factory.makeInstantDebits() as? InstantDebitsPaymentMethodElement else {
             return XCTFail("Expected InstantDebitsPaymentMethodElement from factory")
         }
 
@@ -2322,6 +2261,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
         configuration.billingDetailsCollectionConfiguration.phone = .always
         configuration.billingDetailsCollectionConfiguration.address = .full
         configuration.billingDetailsCollectionConfiguration.attachDefaultsToPaymentMethod = true
+        configuration.billingDetailsCollectionConfiguration.allowedCountries = ["US"]
 
         configuration.defaultBillingDetails.name = "Foo Bar"
         configuration.defaultBillingDetails.email = "foo@bar.com"
@@ -2334,7 +2274,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
             configuration: .paymentElement(configuration),
             paymentMethod: .stripe(.card)
         )
-        guard let instantDebitsSection = factory.makeInstantDebits(countries: ["US"]) as? InstantDebitsPaymentMethodElement else {
+        guard let instantDebitsSection = factory.makeInstantDebits() as? InstantDebitsPaymentMethodElement else {
             return XCTFail("Expected InstantDebitsPaymentMethodElement from factory")
         }
 
@@ -2366,6 +2306,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
         configuration.billingDetailsCollectionConfiguration.email = .automatic
         configuration.billingDetailsCollectionConfiguration.phone = .automatic
         configuration.billingDetailsCollectionConfiguration.address = .automatic
+        configuration.billingDetailsCollectionConfiguration.allowedCountries = ["US"]
 
         let factory = PaymentSheetFormFactory(
             intent: ._testPaymentIntent(paymentMethodTypes: [.card]),
@@ -2373,7 +2314,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
             configuration: .paymentElement(configuration),
             paymentMethod: .stripe(.card)
         )
-        guard let instantDebitsSection = factory.makeInstantDebits(countries: ["US"]) as? InstantDebitsPaymentMethodElement else {
+        guard let instantDebitsSection = factory.makeInstantDebits() as? InstantDebitsPaymentMethodElement else {
             return XCTFail("Expected InstantDebitsPaymentMethodElement from factory")
         }
 
@@ -2404,6 +2345,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
         configuration.billingDetailsCollectionConfiguration.email = .always
         configuration.billingDetailsCollectionConfiguration.phone = .always
         configuration.billingDetailsCollectionConfiguration.address = .full
+        configuration.billingDetailsCollectionConfiguration.allowedCountries = ["US"]
 
         let factory = PaymentSheetFormFactory(
             intent: ._testPaymentIntent(paymentMethodTypes: [.card]),
@@ -2411,7 +2353,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
             configuration: .paymentElement(configuration),
             paymentMethod: .stripe(.card)
         )
-        guard let instantDebitsSection = factory.makeInstantDebits(countries: ["US"]) as? InstantDebitsPaymentMethodElement else {
+        guard let instantDebitsSection = factory.makeInstantDebits() as? InstantDebitsPaymentMethodElement else {
             return XCTFail("Expected InstantDebitsPaymentMethodElement from factory")
         }
 
@@ -2449,6 +2391,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
         noDefaultsConfiguration.billingDetailsCollectionConfiguration.phone = .never
         noDefaultsConfiguration.billingDetailsCollectionConfiguration.address = .never
         noDefaultsConfiguration.billingDetailsCollectionConfiguration.attachDefaultsToPaymentMethod = true
+        noDefaultsConfiguration.billingDetailsCollectionConfiguration.allowedCountries = ["US"]
 
         let noDefaultsFacotry = PaymentSheetFormFactory(
             intent: ._testPaymentIntent(paymentMethodTypes: [.card]),
@@ -2456,7 +2399,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
             configuration: .paymentElement(noDefaultsConfiguration),
             paymentMethod: .stripe(.card)
         )
-        guard let noDefaultsInstantDebitsSection = noDefaultsFacotry.makeInstantDebits(countries: ["US"]) as? InstantDebitsPaymentMethodElement else {
+        guard let noDefaultsInstantDebitsSection = noDefaultsFacotry.makeInstantDebits() as? InstantDebitsPaymentMethodElement else {
             return XCTFail("Expected InstantDebitsPaymentMethodElement from factory")
         }
 
@@ -2469,6 +2412,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
         defaultEmailConfiguration.billingDetailsCollectionConfiguration.address = .never
         defaultEmailConfiguration.billingDetailsCollectionConfiguration.attachDefaultsToPaymentMethod = true
         defaultEmailConfiguration.defaultBillingDetails.email = "foo@bar.com"
+        defaultEmailConfiguration.billingDetailsCollectionConfiguration.allowedCountries = ["US"]
 
         let defaultEmailFacotry = PaymentSheetFormFactory(
             intent: ._testPaymentIntent(paymentMethodTypes: [.card]),
@@ -2476,7 +2420,7 @@ class PaymentSheetFormFactoryTest: XCTestCase {
             configuration: .paymentElement(defaultEmailConfiguration),
             paymentMethod: .stripe(.card)
         )
-        guard let defaultEmailInstantDebitsSection = defaultEmailFacotry.makeInstantDebits(countries: ["US"]) as? InstantDebitsPaymentMethodElement else {
+        guard let defaultEmailInstantDebitsSection = defaultEmailFacotry.makeInstantDebits() as? InstantDebitsPaymentMethodElement else {
             return XCTFail("Expected InstantDebitsPaymentMethodElement from factory")
         }
 
@@ -2995,35 +2939,10 @@ class PaymentSheetFormFactoryTest: XCTestCase {
 
     // MARK: - Saved Payment Method Country Filtering Tests
 
-    private func createMockPaymentMethod(id: String, country: String?) -> STPPaymentMethod {
-        // Create mock payment method data that matches API response structure
-        var mockData: [String: Any] = [
-            "id": id,
-            "object": "payment_method",
-            "type": "card",
-            "card": [
-                "brand": "visa",
-                "last4": "4242",
-                "exp_month": 12,
-                "exp_year": 2025,
-            ],
-        ]
-
-        if let country = country {
-            mockData["billing_details"] = [
-                "address": [
-                    "country": country
-                ],
-            ]
-        }
-
-        return STPPaymentMethod.decodedObject(fromAPIResponse: mockData)!
-    }
-
     func testSavedPaymentMethods_countryFiltering_emptyAllowedCountries() {
         // Create test payment methods with different billing countries
-        let pmUS = createMockPaymentMethod(id: "pm_test_us", country: "US")
-        let pmCA = createMockPaymentMethod(id: "pm_test_ca", country: "CA")
+        let pmUS = STPPaymentMethod._testCard(id: "pm_test_us", country: "US")
+        let pmCA = STPPaymentMethod._testCard(id: "pm_test_ca", country: "CA")
         let savedPaymentMethods = [pmUS, pmCA]
 
         // Configuration with empty allowedCountries (should show all)
@@ -3049,9 +2968,9 @@ class PaymentSheetFormFactoryTest: XCTestCase {
 
     func testSavedPaymentMethods_countryFiltering_specificCountries() {
         // Create test payment methods with different billing countries
-        let pmUS = createMockPaymentMethod(id: "pm_test_us", country: "US")
-        let pmCA = createMockPaymentMethod(id: "pm_test_ca", country: "CA")
-        let pmGB = createMockPaymentMethod(id: "pm_test_gb", country: "GB")
+        let pmUS = STPPaymentMethod._testCard(id: "pm_test_us", country: "US")
+        let pmCA = STPPaymentMethod._testCard(id: "pm_test_ca", country: "CA")
+        let pmGB = STPPaymentMethod._testCard(id: "pm_test_gb", country: "GB")
         let savedPaymentMethods = [pmUS, pmCA, pmGB]
 
         // Configuration allowing only US and CA
@@ -3071,8 +2990,8 @@ class PaymentSheetFormFactoryTest: XCTestCase {
 
     func testSavedPaymentMethods_countryFiltering_withNilBillingDetails() {
         // Create payment methods with various billing details scenarios
-        let pmWithCountry = createMockPaymentMethod(id: "pm_with_country", country: "US")
-        let pmWithoutBillingDetails = createMockPaymentMethod(id: "pm_no_billing", country: nil)
+        let pmWithCountry = STPPaymentMethod._testCard(id: "pm_with_country", country: "US")
+        let pmWithoutBillingDetails = STPPaymentMethod._testCard(id: "pm_no_billing", country: nil)
         let savedPaymentMethods = [pmWithCountry, pmWithoutBillingDetails]
 
         // Configuration allowing only US
@@ -3100,9 +3019,9 @@ class PaymentSheetFormFactoryTest: XCTestCase {
 
     func testSavedPaymentMethods_countryFiltering_excludesDisallowedCountry() {
         // Create payment methods from different countries
-        let pmUS = createMockPaymentMethod(id: "pm_test_us", country: "US")
-        let pmDE = createMockPaymentMethod(id: "pm_test_de", country: "DE")
-        let pmJP = createMockPaymentMethod(id: "pm_test_jp", country: "JP")
+        let pmUS = STPPaymentMethod._testCard(id: "pm_test_us", country: "US")
+        let pmDE = STPPaymentMethod._testCard(id: "pm_test_de", country: "DE")
+        let pmJP = STPPaymentMethod._testCard(id: "pm_test_jp", country: "JP")
         let savedPaymentMethods = [pmUS, pmDE, pmJP]
 
         // Configuration allowing only US and DE
@@ -3122,8 +3041,8 @@ class PaymentSheetFormFactoryTest: XCTestCase {
 
     func testSavedPaymentMethods_countryFiltering_singleCountryAllowed() {
         // Create payment methods from different countries
-        let pmUS = createMockPaymentMethod(id: "pm_test_us", country: "US")
-        let pmCA = createMockPaymentMethod(id: "pm_test_ca", country: "CA")
+        let pmUS = STPPaymentMethod._testCard(id: "pm_test_us", country: "US")
+        let pmCA = STPPaymentMethod._testCard(id: "pm_test_ca", country: "CA")
         let savedPaymentMethods = [pmUS, pmCA]
 
         // Configuration allowing only US
